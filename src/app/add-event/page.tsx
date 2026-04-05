@@ -1,11 +1,67 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { EventForm } from "@/components/event-form";
-import { ArrowLeft, Mic } from "lucide-react";
+import { SpeechToEvent } from "@/components/speech-to-event";
+import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
+interface ParsedEvent {
+  name: string;
+  date: string | null;
+  endDate: string | null;
+  location: string | null;
+  description: string | null;
+  attendees: string[];
+  reminderPresets: string[];
+}
+
 export default function AddEventPage() {
+  const [prefill, setPrefill] = useState<Partial<{
+    name: string;
+    date: string;
+    endDate: string;
+    location: string;
+    description: string;
+    reminderPresets: string[];
+  }> | null>(null);
+
+  const [members, setMembers] = useState<{ id: number; name: string }[]>([]);
+
+  useEffect(() => {
+    fetch("/api/members")
+      .then((res) => res.json())
+      .then(setMembers)
+      .catch(() => {});
+  }, []);
+
+  function handleParsed(data: ParsedEvent) {
+    // Match attendee names to member IDs
+    const attendeeIds = data.attendees
+      ?.map((name) => {
+        const member = members.find(
+          (m) => m.name.toLowerCase() === name.toLowerCase()
+        );
+        return member?.id;
+      })
+      .filter(Boolean) as number[];
+
+    setPrefill({
+      name: data.name || "",
+      date: data.date || "",
+      endDate: data.endDate || "",
+      location: data.location || "",
+      description: data.description || "",
+      reminderPresets: data.reminderPresets || ["1d"],
+    });
+
+    // We'll pass attendees through the prefill too
+    if (attendeeIds.length > 0) {
+      setPrefill((prev) => prev ? { ...prev, attendees: attendeeIds } as typeof prev : prev);
+    }
+  }
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -21,18 +77,13 @@ export default function AddEventPage() {
       </div>
 
       <div className="mx-auto max-w-lg px-4 py-6">
-        {/* AI Voice Button - placeholder for Phase 4 */}
-        <Button
-          variant="outline"
-          className="w-full mb-6 py-6 text-base gap-2 border-dashed border-2"
-          disabled
-        >
-          <Mic className="h-5 w-5" />
-          Add via AI (coming soon)
-        </Button>
+        {/* AI Voice Input */}
+        <div className="mb-6">
+          <SpeechToEvent onParsed={handleParsed} />
+        </div>
 
         {/* Manual Event Form */}
-        <EventForm />
+        <EventForm key={JSON.stringify(prefill)} initialData={prefill || undefined} />
       </div>
     </div>
   );

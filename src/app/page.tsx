@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CalendarPlus, CalendarDays } from "lucide-react";
+import { CalendarPlus, CalendarDays, Settings } from "lucide-react";
 
 export default function Home() {
   return (
@@ -29,6 +29,14 @@ export default function Home() {
           </button>
         </Link>
       </div>
+
+      <Link
+        href="/admin"
+        className="mt-8 flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+      >
+        <Settings className="h-4 w-4" />
+        Admin
+      </Link>
     </div>
   );
 }
