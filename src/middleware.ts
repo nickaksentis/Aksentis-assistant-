@@ -9,7 +9,7 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  if (pathname.startsWith("/api/reminders/cron")) {
+  if (pathname.startsWith("/api/reminders/cron") || pathname.startsWith("/api/migrate")) {
     return NextResponse.next();
   }
 

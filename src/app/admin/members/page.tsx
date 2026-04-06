@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Plus, Pencil, Trash2, X, Check } from "lucide-react";
+import { ArrowLeft, Plus, Pencil, Trash2, X, Check, Send, Loader2 } from "lucide-react";
 
 interface Member {
   id: number;
@@ -30,6 +30,8 @@ export default function AdminMembersPage() {
     homeAddress: "",
   });
   const [error, setError] = useState("");
+  const [testingSmsFor, setTestingSmsFor] = useState<number | null>(null);
+  const [smsResult, setSmsResult] = useState<{ id: number; msg: string; ok: boolean } | null>(null);
 
   async function loadMembers() {
     const res = await fetch("/api/admin/members");
@@ -85,6 +87,27 @@ export default function AdminMembersPage() {
       body: JSON.stringify({ id }),
     });
     loadMembers();
+  }
+
+  async function sendTestSms(member: Member) {
+    setTestingSmsFor(member.id);
+    setSmsResult(null);
+    try {
+      const res = await fetch("/api/admin/test-sms", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ memberId: member.id }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setSmsResult({ id: member.id, msg: `Sent to ${member.phone}`, ok: true });
+      } else {
+        setSmsResult({ id: member.id, msg: data.error || "Failed", ok: false });
+      }
+    } catch {
+      setSmsResult({ id: member.id, msg: "Network error", ok: false });
+    }
+    setTestingSmsFor(null);
   }
 
   function startEdit(member: Member) {
@@ -254,6 +277,19 @@ export default function AdminMembersPage() {
                 <Button
                   variant="ghost"
                   size="icon"
+                  title="Send Test SMS"
+                  disabled={testingSmsFor === member.id}
+                  onClick={() => sendTestSms(member)}
+                >
+                  {testingSmsFor === member.id ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Send className="h-4 w-4 text-primary" />
+                  )}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
                   onClick={() => startEdit(member)}
                 >
                   <Pencil className="h-4 w-4" />
@@ -266,6 +302,13 @@ export default function AdminMembersPage() {
                   <Trash2 className="h-4 w-4 text-destructive" />
                 </Button>
               </div>
+              {smsResult?.id === member.id && (
+                <p
+                  className={`text-xs mt-1 ${smsResult.ok ? "text-green-400" : "text-red-400"}`}
+                >
+                  {smsResult.msg}
+                </p>
+              )}
             </div>
           ))
         )}
