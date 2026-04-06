@@ -1,11 +1,48 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Users, Calendar, BarChart3, FileText } from "lucide-react";
+import {
+  ArrowLeft,
+  Users,
+  Calendar,
+  BarChart3,
+  FileText,
+  Database,
+  Loader2,
+  CheckCircle,
+  XCircle,
+} from "lucide-react";
 import { CURRENT_VERSION } from "@/lib/revision-log";
 
 export default function AdminPage() {
+  const [migrating, setMigrating] = useState(false);
+  const [migrateResult, setMigrateResult] = useState<{
+    ok: boolean;
+    msg: string;
+  } | null>(null);
+
+  async function runMigrations() {
+    setMigrating(true);
+    setMigrateResult(null);
+    try {
+      const res = await fetch("/api/migrate", { method: "POST" });
+      const data = await res.json();
+      if (res.ok) {
+        setMigrateResult({
+          ok: true,
+          msg: `Done — ${data.results?.length || 0} migrations checked.`,
+        });
+      } else {
+        setMigrateResult({ ok: false, msg: data.error || "Migration failed" });
+      }
+    } catch {
+      setMigrateResult({ ok: false, msg: "Network error" });
+    }
+    setMigrating(false);
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <div className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur">
@@ -59,7 +96,7 @@ export default function AdminPage() {
             <div>
               <h2 className="font-semibold">Usage & Logs</h2>
               <p className="text-sm text-muted-foreground">
-                SMS log, delivery status, spam tracking
+                SMS log, activity log, delivery status
               </p>
             </div>
           </div>
@@ -78,6 +115,39 @@ export default function AdminPage() {
             </div>
           </div>
         </Link>
+
+        {/* Run Migrations */}
+        <button
+          onClick={runMigrations}
+          disabled={migrating}
+          className="w-full flex items-center gap-4 rounded-xl border bg-card p-5 shadow-sm hover:shadow-md transition-all text-left"
+        >
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+            {migrating ? (
+              <Loader2 className="h-5 w-5 text-primary animate-spin" />
+            ) : (
+              <Database className="h-5 w-5 text-primary" />
+            )}
+          </div>
+          <div className="flex-1 min-w-0">
+            <h2 className="font-semibold">Run Migrations</h2>
+            <p className="text-sm text-muted-foreground">
+              Update database tables after a new deploy
+            </p>
+            {migrateResult && (
+              <div
+                className={`mt-1 flex items-center gap-1.5 text-xs ${migrateResult.ok ? "text-green-400" : "text-red-400"}`}
+              >
+                {migrateResult.ok ? (
+                  <CheckCircle className="h-3.5 w-3.5" />
+                ) : (
+                  <XCircle className="h-3.5 w-3.5" />
+                )}
+                {migrateResult.msg}
+              </div>
+            )}
+          </div>
+        </button>
       </div>
     </div>
   );
