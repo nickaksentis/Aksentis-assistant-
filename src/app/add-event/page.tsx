@@ -10,7 +10,6 @@ import { Button } from "@/components/ui/button";
 interface ParsedEvent {
   name: string;
   date: string | null;
-  endDate: string | null;
   location: string | null;
   description: string | null;
   attendees: string[];
@@ -21,7 +20,6 @@ export default function AddEventPage() {
   const [prefill, setPrefill] = useState<Partial<{
     name: string;
     date: string;
-    endDate: string;
     location: string;
     description: string;
     reminderPresets: string[];
@@ -37,7 +35,6 @@ export default function AddEventPage() {
   }, []);
 
   function handleParsed(data: ParsedEvent) {
-    // Match attendee names to member IDs
     const attendeeIds = data.attendees
       ?.map((name) => {
         const member = members.find(
@@ -50,13 +47,11 @@ export default function AddEventPage() {
     setPrefill({
       name: data.name || "",
       date: data.date || "",
-      endDate: data.endDate || "",
       location: data.location || "",
       description: data.description || "",
       reminderPresets: data.reminderPresets || ["1d"],
     });
 
-    // We'll pass attendees through the prefill too
     if (attendeeIds.length > 0) {
       setPrefill((prev) => prev ? { ...prev, attendees: attendeeIds } as typeof prev : prev);
     }
@@ -64,7 +59,6 @@ export default function AddEventPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <div className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur">
         <div className="mx-auto max-w-lg flex items-center gap-3 px-4 py-3">
           <Link href="/">
@@ -77,12 +71,9 @@ export default function AddEventPage() {
       </div>
 
       <div className="mx-auto max-w-lg px-4 py-6">
-        {/* AI Voice Input */}
         <div className="mb-6">
           <SpeechToEvent onParsed={handleParsed} />
         </div>
-
-        {/* Manual Event Form */}
         <EventForm key={JSON.stringify(prefill)} initialData={prefill || undefined} />
       </div>
     </div>

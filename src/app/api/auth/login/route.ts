@@ -19,9 +19,16 @@ export async function POST(req: NextRequest) {
   });
 
   if (!member || member.pin !== pin) {
+    return NextResponse.json({ error: "Invalid PIN" }, { status: 401 });
+  }
+
+  if (!member.isActive) {
     return NextResponse.json(
-      { error: "Invalid PIN" },
-      { status: 401 }
+      {
+        error:
+          "Your account isn't active yet. Check your phone for an activation text and reply YES.",
+      },
+      { status: 403 }
     );
   }
 

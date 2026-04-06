@@ -6,6 +6,9 @@ export const familyMembers = sqliteTable("family_members", {
   phone: text("phone").notNull(),
   pin: text("pin").notNull(),
   isAdmin: integer("is_admin", { mode: "boolean" }).notNull().default(false),
+  isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
+  homeAddress: text("home_address"),
+  homePlaceId: text("home_place_id"),
   createdAt: text("created_at")
     .notNull()
     .$defaultFn(() => new Date().toISOString()),
@@ -72,6 +75,19 @@ export const smsLog = sqliteTable("sms_log", {
     .notNull()
     .default("outbound"),
   status: text("status").notNull().default("queued"),
+  createdAt: text("created_at")
+    .notNull()
+    .$defaultFn(() => new Date().toISOString()),
+});
+
+export const savedLocations = sqliteTable("saved_locations", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  name: text("name").notNull(),
+  address: text("address").notNull(),
+  placeId: text("place_id"),
+  latitude: text("latitude"),
+  longitude: text("longitude"),
+  locationType: text("location_type").notNull().default("other"),
   createdAt: text("created_at")
     .notNull()
     .$defaultFn(() => new Date().toISOString()),

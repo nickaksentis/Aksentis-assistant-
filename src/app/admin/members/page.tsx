@@ -13,6 +13,8 @@ interface Member {
   phone: string;
   pin: string;
   isAdmin: boolean;
+  isActive: boolean;
+  homeAddress: string | null;
 }
 
 export default function AdminMembersPage() {
@@ -20,7 +22,13 @@ export default function AdminMembersPage() {
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
-  const [form, setForm] = useState({ name: "", phone: "", pin: "", isAdmin: false });
+  const [form, setForm] = useState({
+    name: "",
+    phone: "",
+    pin: "",
+    isAdmin: false,
+    homeAddress: "",
+  });
   const [error, setError] = useState("");
 
   async function loadMembers() {
@@ -44,7 +52,7 @@ export default function AdminMembersPage() {
     });
     if (res.ok) {
       setShowAdd(false);
-      setForm({ name: "", phone: "", pin: "", isAdmin: false });
+      setForm({ name: "", phone: "", pin: "", isAdmin: false, homeAddress: "" });
       loadMembers();
     } else {
       const data = await res.json();
@@ -61,7 +69,7 @@ export default function AdminMembersPage() {
     });
     if (res.ok) {
       setEditingId(null);
-      setForm({ name: "", phone: "", pin: "", isAdmin: false });
+      setForm({ name: "", phone: "", pin: "", isAdmin: false, homeAddress: "" });
       loadMembers();
     } else {
       const data = await res.json();
@@ -86,6 +94,7 @@ export default function AdminMembersPage() {
       phone: member.phone,
       pin: "",
       isAdmin: member.isAdmin,
+      homeAddress: member.homeAddress || "",
     });
     setShowAdd(false);
   }
@@ -108,7 +117,7 @@ export default function AdminMembersPage() {
             onClick={() => {
               setShowAdd(true);
               setEditingId(null);
-              setForm({ name: "", phone: "", pin: "", isAdmin: false });
+              setForm({ name: "", phone: "", pin: "", isAdmin: false, homeAddress: "" });
             }}
           >
             <Plus className="h-4 w-4" />
@@ -122,7 +131,6 @@ export default function AdminMembersPage() {
           <p className="text-sm text-destructive text-center">{error}</p>
         )}
 
-        {/* Add / Edit Form */}
         {(showAdd || editingId !== null) && (
           <div className="rounded-xl border bg-card p-4 space-y-3">
             <h3 className="font-semibold">
@@ -147,12 +155,24 @@ export default function AdminMembersPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label>{editingId ? "New PIN (leave blank to keep)" : "PIN"}</Label>
+              <Label>
+                {editingId ? "New PIN (leave blank to keep)" : "PIN"}
+              </Label>
               <Input
                 type="password"
                 value={form.pin}
                 onChange={(e) => setForm((f) => ({ ...f, pin: e.target.value }))}
                 placeholder="1234"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Home Address</Label>
+              <Input
+                value={form.homeAddress}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, homeAddress: e.target.value }))
+                }
+                placeholder="123 Main St, City, State"
               />
             </div>
             <label className="flex items-center gap-2 text-sm">
@@ -193,7 +213,6 @@ export default function AdminMembersPage() {
           </div>
         )}
 
-        {/* Members List */}
         {loading ? (
           <p className="text-center text-muted-foreground py-8">Loading...</p>
         ) : members.length === 0 ? (
@@ -207,17 +226,31 @@ export default function AdminMembersPage() {
               className="flex items-center justify-between rounded-xl border bg-card p-4"
             >
               <div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-medium">{member.name}</span>
                   {member.isAdmin && (
                     <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
                       Admin
                     </span>
                   )}
+                  <span
+                    className={`text-xs px-2 py-0.5 rounded-full ${
+                      member.isActive
+                        ? "bg-green-500/15 text-green-400"
+                        : "bg-yellow-500/15 text-yellow-400"
+                    }`}
+                  >
+                    {member.isActive ? "Active" : "Pending"}
+                  </span>
                 </div>
                 <p className="text-sm text-muted-foreground">{member.phone}</p>
+                {member.homeAddress && (
+                  <p className="text-xs text-muted-foreground truncate max-w-[200px]">
+                    {member.homeAddress}
+                  </p>
+                )}
               </div>
-              <div className="flex gap-1">
+              <div className="flex gap-1 shrink-0">
                 <Button
                   variant="ghost"
                   size="icon"

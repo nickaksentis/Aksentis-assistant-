@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { familyMembers } from "@/lib/db/schema";
+import { familyMembers, smsLog } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { getSession } from "@/lib/auth";
+import { sendSMS } from "@/lib/sms/twilio";
 
-// Public: returns id + name only
+// Public: returns id + name only (for login page and attendee picker)
 export async function GET() {
   const members = await db
     .select({ id: familyMembers.id, name: familyMembers.name })
@@ -19,7 +20,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const { name, phone, pin, isAdmin } = await req.json();
+  const { name, phone, pin, isAdmin, homeAddress, homePlaceId } =
+    await req.json();
   if (!name?.trim() || !phone?.trim() || !pin?.trim()) {
     return NextResponse.json(
       { error: "Name, phone, and PIN are required" },
@@ -34,8 +36,27 @@ export async function POST(req: NextRequest) {
       phone: phone.trim(),
       pin: pin.trim(),
       isAdmin: isAdmin || false,
+      isActive: false, // New members start inactive until they reply YES
+      homeAddress: homeAddress?.trim() || null,
+      homePlaceId: homePlaceId || null,
     })
     .returning();
+
+  // Send activation SMS
+  try {
+    const activationMsg = `Hi ${member.name}! You've been added to the Family Calendar Assistant. Reply YES to activate your account.`;
+    const sid = await sendSMS(member.phone, activationMsg);
+    await db.insert(smsLog).values({
+      memberId: member.id,
+      phone: member.phone,
+      messageBody: activationMsg,
+      twilioSid: sid,
+      direction: "outbound",
+      status: "sent",
+    });
+  } catch {
+    // SMS is best-effort during member creation
+  }
 
   return NextResponse.json(member, { status: 201 });
 }
@@ -47,7 +68,8 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const { id, name, phone, pin, isAdmin } = await req.json();
+  const { id, name, phone, pin, isAdmin, homeAddress, homePlaceId } =
+    await req.json();
   if (!id) {
     return NextResponse.json({ error: "ID is required" }, { status: 400 });
   }
@@ -57,6 +79,9 @@ export async function PUT(req: NextRequest) {
   if (phone?.trim()) updates.phone = phone.trim();
   if (pin?.trim()) updates.pin = pin.trim();
   if (typeof isAdmin === "boolean") updates.isAdmin = isAdmin;
+  if (homeAddress !== undefined)
+    updates.homeAddress = homeAddress?.trim() || null;
+  if (homePlaceId !== undefined) updates.homePlaceId = homePlaceId || null;
 
   const [updated] = await db
     .update(familyMembers)

@@ -9,7 +9,6 @@ interface EventCardProps {
     id: number;
     name: string;
     date: string;
-    endDate?: string | null;
     location?: string | null;
     description?: string | null;
     createdBy: number;
@@ -25,17 +24,15 @@ export function EventCard({ event }: EventCardProps) {
     <button
       type="button"
       onClick={() => setExpanded(!expanded)}
-      className="w-full text-left rounded-xl border bg-card p-4 shadow-sm transition-all hover:shadow-md active:scale-[0.99]"
+      className="w-full text-left rounded-xl border bg-card p-4 shadow-sm transition-all hover:shadow-md active:scale-[0.99] overflow-hidden"
     >
       <div className="flex items-start justify-between">
         <div className="flex-1 min-w-0">
           <h3 className="font-semibold text-base truncate">{event.name}</h3>
           <div className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
             <Clock className="h-3.5 w-3.5 shrink-0" />
-            <span>
+            <span className="truncate">
               {format(eventDate, "EEE, MMM d 'at' h:mm a")}
-              {event.endDate &&
-                ` – ${format(parseISO(event.endDate), "h:mm a")}`}
             </span>
           </div>
           {event.location && (

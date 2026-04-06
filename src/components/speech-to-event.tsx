@@ -7,7 +7,6 @@ import { Mic, MicOff, Loader2, X } from "lucide-react";
 interface ParsedEvent {
   name: string;
   date: string | null;
-  endDate: string | null;
   location: string | null;
   description: string | null;
   attendees: string[];

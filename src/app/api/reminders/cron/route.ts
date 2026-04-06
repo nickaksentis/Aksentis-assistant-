@@ -1,13 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { reminders, events, familyMembers, eventAttendees, smsLog } from "@/lib/db/schema";
+import {
+  reminders,
+  events,
+  familyMembers,
+  eventAttendees,
+  smsLog,
+} from "@/lib/db/schema";
 import { eq, lte, and } from "drizzle-orm";
 import { generateReminderMessage } from "@/lib/ai/generate-reminder";
 import { sendSMS } from "@/lib/sms/twilio";
 import { format, parseISO } from "date-fns";
 
 export async function POST(req: NextRequest) {
-  // Verify QStash signature in production (simplified check)
   const authHeader = req.headers.get("authorization");
   const isLocal = process.env.NODE_ENV === "development";
   if (!isLocal && !authHeader) {
@@ -16,11 +21,12 @@ export async function POST(req: NextRequest) {
 
   const now = new Date().toISOString();
 
-  // Find pending reminders that are due
   const dueReminders = await db
     .select()
     .from(reminders)
-    .where(and(eq(reminders.status, "pending"), lte(reminders.scheduledAt, now)));
+    .where(
+      and(eq(reminders.status, "pending"), lte(reminders.scheduledAt, now))
+    );
 
   if (dueReminders.length === 0) {
     return NextResponse.json({ processed: 0 });
@@ -31,7 +37,6 @@ export async function POST(req: NextRequest) {
 
   for (const reminder of dueReminders) {
     try {
-      // Get the event
       const event = await db.query.events.findFirst({
         where: eq(events.id, reminder.eventId),
       });
@@ -55,27 +60,26 @@ export async function POST(req: NextRequest) {
         recipientIds = attendees.map((a) => a.memberId);
         if (recipientIds.length === 0) recipientIds = [event.createdBy];
       } else {
-        // "all" - send to all family members
         const allMembers = await db
           .select({ id: familyMembers.id })
           .from(familyMembers);
         recipientIds = allMembers.map((m) => m.id);
       }
 
-      // Get recipient details
-      const recipients = await Promise.all(
-        recipientIds.map((id) =>
-          db.query.familyMembers.findFirst({
-            where: eq(familyMembers.id, id),
-          })
+      // Get recipient details and filter to active members only
+      const recipients = (
+        await Promise.all(
+          recipientIds.map((id) =>
+            db.query.familyMembers.findFirst({
+              where: eq(familyMembers.id, id),
+            })
+          )
         )
-      );
+      ).filter((r) => r?.isActive);
 
-      // Send SMS to each recipient
       for (const recipient of recipients) {
         if (!recipient?.phone) continue;
 
-        // Generate personalized message
         const messageBody =
           reminder.messageBody ||
           (await generateReminderMessage({
@@ -91,7 +95,6 @@ export async function POST(req: NextRequest) {
         try {
           const twilioSid = await sendSMS(recipient.phone, messageBody);
 
-          // Log the SMS
           await db.insert(smsLog).values({
             reminderId: reminder.id,
             memberId: recipient.id,
@@ -114,7 +117,6 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // Mark reminder as sent
       await db
         .update(reminders)
         .set({

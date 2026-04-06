@@ -3,7 +3,6 @@ import Anthropic from "@anthropic-ai/sdk";
 interface ParsedEvent {
   name: string;
   date: string | null;
-  endDate: string | null;
   location: string | null;
   description: string | null;
   attendees: string[];
@@ -31,7 +30,6 @@ Family members: ${familyMembers.join(", ")}
 Parse the following text into a calendar event. Return a JSON object with these fields:
 - name: string (event title)
 - date: string | null (ISO datetime like "2026-04-10T16:00", infer from context if relative dates like "next Tuesday")
-- endDate: string | null (ISO datetime, if mentioned)
 - location: string | null
 - description: string | null (any extra details)
 - attendees: string[] (names of family members mentioned, matched from the list above)

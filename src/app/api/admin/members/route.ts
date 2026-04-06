@@ -3,7 +3,6 @@ import { db } from "@/lib/db";
 import { familyMembers } from "@/lib/db/schema";
 import { getSession } from "@/lib/auth";
 
-// Admin-only: returns full member details
 export async function GET() {
   const session = await getSession();
   if (!session.isLoggedIn || !session.isAdmin) {
@@ -17,6 +16,9 @@ export async function GET() {
       phone: familyMembers.phone,
       pin: familyMembers.pin,
       isAdmin: familyMembers.isAdmin,
+      isActive: familyMembers.isActive,
+      homeAddress: familyMembers.homeAddress,
+      homePlaceId: familyMembers.homePlaceId,
       createdAt: familyMembers.createdAt,
     })
     .from(familyMembers);

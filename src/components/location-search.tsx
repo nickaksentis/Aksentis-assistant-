@@ -9,6 +9,7 @@ interface PlacePrediction {
   description: string;
   mainText: string;
   secondaryText: string;
+  isSaved?: boolean;
 }
 
 interface LocationData {
@@ -112,13 +113,20 @@ export function LocationSearch({
             <button
               key={p.placeId}
               type="button"
-              className="flex w-full flex-col px-3 py-2 text-left hover:bg-accent transition-colors first:rounded-t-md last:rounded-b-md"
+              className="flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-accent transition-colors first:rounded-t-md last:rounded-b-md"
               onClick={() => handleSelect(p)}
             >
-              <span className="text-sm font-medium">{p.mainText}</span>
-              <span className="text-xs text-muted-foreground">
-                {p.secondaryText}
-              </span>
+              <div className="flex-1 min-w-0">
+                <span className="text-sm font-medium truncate block">{p.mainText}</span>
+                <span className="text-xs text-muted-foreground truncate block">
+                  {p.secondaryText}
+                </span>
+              </div>
+              {p.isSaved && (
+                <span className="text-xs bg-primary/15 text-primary px-1.5 py-0.5 rounded shrink-0">
+                  Saved
+                </span>
+              )}
             </button>
           ))}
         </div>

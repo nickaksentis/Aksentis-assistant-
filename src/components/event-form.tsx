@@ -14,7 +14,6 @@ import { Loader2 } from "lucide-react";
 interface EventFormData {
   name: string;
   date: string;
-  endDate: string;
   location: string;
   placeId: string;
   latitude: string;
@@ -38,7 +37,6 @@ export function EventForm({ initialData }: EventFormProps) {
   const [form, setForm] = useState<EventFormData>({
     name: initialData?.name || "",
     date: initialData?.date || "",
-    endDate: initialData?.endDate || "",
     location: initialData?.location || "",
     placeId: initialData?.placeId || "",
     latitude: initialData?.latitude || "",
@@ -119,25 +117,14 @@ export function EventForm({ initialData }: EventFormProps) {
       </div>
 
       {/* Date & Time */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="date">Start Date & Time *</Label>
-          <Input
-            id="date"
-            type="datetime-local"
-            value={form.date}
-            onChange={(e) => updateField("date", e.target.value)}
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="endDate">End Date & Time</Label>
-          <Input
-            id="endDate"
-            type="datetime-local"
-            value={form.endDate}
-            onChange={(e) => updateField("endDate", e.target.value)}
-          />
-        </div>
+      <div className="space-y-2">
+        <Label htmlFor="date">Date & Time *</Label>
+        <Input
+          id="date"
+          type="datetime-local"
+          value={form.date}
+          onChange={(e) => updateField("date", e.target.value)}
+        />
       </div>
 
       {/* Location */}
@@ -211,7 +198,7 @@ export function EventForm({ initialData }: EventFormProps) {
       {/* Reminder Recipients */}
       <div className="space-y-2">
         <Label>Send Reminders To</Label>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {(
             [
               { value: "creator", label: "Just me" },

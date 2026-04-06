@@ -56,7 +56,7 @@ export default function AdminEventsPage() {
   return (
     <div className="min-h-screen bg-background">
       <div className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur">
-        <div className="mx-auto max-w-2xl flex items-center gap-3 px-4 py-3">
+        <div className="mx-auto max-w-lg flex items-center gap-3 px-4 py-3">
           <Link href="/admin">
             <Button variant="ghost" size="icon">
               <ArrowLeft className="h-5 w-5" />
@@ -66,7 +66,7 @@ export default function AdminEventsPage() {
         </div>
       </div>
 
-      <div className="mx-auto max-w-2xl px-4 py-6 space-y-4">
+      <div className="mx-auto max-w-lg px-4 py-6 space-y-4">
         {/* Search */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />

@@ -29,15 +29,64 @@ export async function POST(req: NextRequest) {
     status: "received",
   });
 
-  // Check if sender is an approved family member
+  // Check if sender is a registered family member
   const member = await db.query.familyMembers.findFirst({
     where: eq(familyMembers.phone, from),
   });
 
+  // Unknown number — log as spam and reject
   if (!member) {
+    await db.insert(smsLog).values({
+      phone: from,
+      messageBody: `[SPAM BLOCKED] Unknown number attempted: ${body}`,
+      direction: "inbound",
+      status: "spam_blocked",
+    });
+
     return new NextResponse(
       generateTwimlResponse(
         "Sorry, this number isn't registered with the family calendar."
+      ),
+      { headers: { "Content-Type": "text/xml" } }
+    );
+  }
+
+  // Handle YES activation response
+  if (body.trim().toUpperCase() === "YES" && !member.isActive) {
+    await db
+      .update(familyMembers)
+      .set({ isActive: true })
+      .where(eq(familyMembers.id, member.id));
+
+    await db.insert(smsLog).values({
+      memberId: member.id,
+      phone: from,
+      messageBody: "You're all set! Your account is now active. You can now use the Family Calendar Assistant.",
+      direction: "outbound",
+      status: "sent",
+    });
+
+    return new NextResponse(
+      generateTwimlResponse(
+        "You're all set! Your account is now active. You can now use the Family Calendar Assistant."
+      ),
+      { headers: { "Content-Type": "text/xml" } }
+    );
+  }
+
+  // Inactive member — block and prompt activation
+  if (!member.isActive) {
+    await db.insert(smsLog).values({
+      memberId: member.id,
+      phone: from,
+      messageBody: `[INACTIVE BLOCKED] ${body}`,
+      direction: "inbound",
+      status: "inactive_blocked",
+    });
+
+    return new NextResponse(
+      generateTwimlResponse(
+        "Your account isn't active yet. Reply YES to activate."
       ),
       { headers: { "Content-Type": "text/xml" } }
     );
@@ -71,7 +120,7 @@ export async function POST(req: NextRequest) {
       .values({
         name: parsed.name,
         date: parsed.date,
-        endDate: parsed.endDate || null,
+        endDate: null,
         location: parsed.location || null,
         description: parsed.description || null,
         createdBy: member.id,
