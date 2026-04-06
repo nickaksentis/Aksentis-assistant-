@@ -13,6 +13,8 @@ import {
   Loader2,
   CheckCircle,
   XCircle,
+  Settings,
+  MapPin,
 } from "lucide-react";
 import { CURRENT_VERSION } from "@/lib/revision-log";
 
@@ -60,6 +62,20 @@ export default function AdminPage() {
       </div>
 
       <div className="mx-auto max-w-lg px-4 py-6 space-y-4">
+        <Link href="/admin/settings" className="block">
+          <div className="flex items-center gap-4 rounded-xl border bg-card p-5 shadow-sm hover:shadow-md transition-all">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+              <Settings className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <h2 className="font-semibold">General Settings</h2>
+              <p className="text-sm text-muted-foreground">
+                Site name, slogan, default timezone
+              </p>
+            </div>
+          </div>
+        </Link>
+
         <Link href="/admin/members" className="block">
           <div className="flex items-center gap-4 rounded-xl border bg-card p-5 shadow-sm hover:shadow-md transition-all">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
@@ -83,6 +99,20 @@ export default function AdminPage() {
               <h2 className="font-semibold">Manage Events</h2>
               <p className="text-sm text-muted-foreground">
                 View, edit, or delete all events
+              </p>
+            </div>
+          </div>
+        </Link>
+
+        <Link href="/admin/locations" className="block">
+          <div className="flex items-center gap-4 rounded-xl border bg-card p-5 shadow-sm hover:shadow-md transition-all">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+              <MapPin className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <h2 className="font-semibold">Saved Locations</h2>
+              <p className="text-sm text-muted-foreground">
+                Manage saved places and addresses
               </p>
             </div>
           </div>

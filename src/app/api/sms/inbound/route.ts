@@ -4,8 +4,12 @@ import { familyMembers, events, reminders, smsLog } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { parseEventFromText } from "@/lib/ai/parse-event";
 import { generateTwimlResponse } from "@/lib/sms/twilio";
-import { format, parseISO } from "date-fns";
 import { REMINDER_PRESETS } from "@/types";
+import {
+  naiveToUTC,
+  getDefaultTimezone,
+  formatEventTimeForTimezone,
+} from "@/lib/timezone";
 
 export async function POST(req: NextRequest) {
   const formData = await req.formData();
@@ -114,12 +118,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Convert parsed date to UTC using sender's timezone
+    const memberTz =
+      member.timezone || (await getDefaultTimezone());
+    const utcDate = naiveToUTC(parsed.date, memberTz);
+
     // Create the event
     const [newEvent] = await db
       .insert(events)
       .values({
         name: parsed.name,
-        date: parsed.date,
+        date: utcDate,
         endDate: null,
         location: parsed.location || null,
         description: parsed.description || null,
@@ -132,7 +141,7 @@ export async function POST(req: NextRequest) {
       ? parsed.reminderPresets
       : ["1d"];
 
-    const eventDate = new Date(parsed.date);
+    const eventDate = new Date(utcDate);
     const reminderRows = presetValues
       .map((presetValue: string) => {
         const preset = REMINDER_PRESETS.find((p) => p.value === presetValue);
@@ -157,8 +166,9 @@ export async function POST(req: NextRequest) {
     }
 
     // Build confirmation message
-    const formattedDate = format(
-      parseISO(parsed.date),
+    const formattedDate = formatEventTimeForTimezone(
+      utcDate,
+      memberTz,
       "EEE MMM d 'at' h:mm a"
     );
     const reminderInfo =

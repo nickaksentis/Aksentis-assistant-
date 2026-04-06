@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { LocationSearch } from "@/components/location-search";
 import { FamilyMemberSelect } from "@/components/family-member-select";
+import { TimeSelect } from "@/components/time-select";
 import { REMINDER_PRESETS } from "@/types";
 import { ArrowLeft, Loader2 } from "lucide-react";
 
@@ -40,6 +41,14 @@ export default function EditEventPage() {
   );
 }
 
+function snapTo15Min(time: string): string {
+  const [h, m] = time.split(":").map(Number);
+  const snapped = Math.round(m / 15) * 15;
+  const finalM = snapped === 60 ? 0 : snapped;
+  const finalH = snapped === 60 ? (h + 1) % 24 : h;
+  return `${finalH.toString().padStart(2, "0")}:${finalM.toString().padStart(2, "0")}`;
+}
+
 function EditEventContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -64,6 +73,16 @@ function EditEventContent() {
     reminderRecipients: "creator",
   });
 
+  const [datePart, setDatePart] = useState("");
+  const [timePart, setTimePart] = useState("");
+
+  function updateDateTime(newDate: string, newTime: string) {
+    setDatePart(newDate);
+    setTimePart(newTime);
+    const combined = newDate && newTime ? `${newDate}T${newTime}` : "";
+    setForm((prev) => ({ ...prev, date: combined }));
+  }
+
   useEffect(() => {
     if (!eventId) {
       setError("No event ID");
@@ -71,9 +90,14 @@ function EditEventContent() {
       return;
     }
 
-    fetch(`/api/events?id=${eventId}`)
-      .then((res) => res.json())
-      .then((data: EventData | EventData[]) => {
+    // Fetch event and user's timezone in parallel
+    Promise.all([
+      fetch(`/api/events?id=${eventId}`).then((r) => r.json()),
+      fetch("/api/auth/me").then((r) => r.json()),
+      fetch("/api/settings").then((r) => r.json()).catch(() => ({})),
+    ])
+      .then(([eventData, meData, settings]) => {
+        const data = eventData as EventData | EventData[];
         const event = Array.isArray(data)
           ? data.find((e) => e.id === Number(eventId))
           : data;
@@ -83,15 +107,45 @@ function EditEventContent() {
           return;
         }
 
-        // Convert ISO date to datetime-local format
+        // Convert UTC date to user's local timezone
+        const userTz =
+          meData?.timezone ||
+          settings?.defaultTimezone ||
+          "America/New_York";
         let dateLocal = event.date;
-        if (dateLocal && dateLocal.includes("T")) {
-          dateLocal = dateLocal.substring(0, 16);
+        try {
+          // Use Intl to convert UTC to user's local time
+          const utcDate = new Date(dateLocal);
+          if (!isNaN(utcDate.getTime())) {
+            const fmt = new Intl.DateTimeFormat("en-CA", {
+              timeZone: userTz,
+              year: "numeric",
+              month: "2-digit",
+              day: "2-digit",
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: false,
+            });
+            const parts = fmt.formatToParts(utcDate);
+            const get = (t: string) =>
+              parts.find((p) => p.type === t)?.value || "";
+            dateLocal = `${get("year")}-${get("month")}-${get("day")}T${get("hour")}:${get("minute")}`;
+          }
+        } catch {
+          if (dateLocal && dateLocal.includes("T")) {
+            dateLocal = dateLocal.substring(0, 16);
+          }
         }
+
+        const dp = dateLocal ? dateLocal.substring(0, 10) : "";
+        const tp = dateLocal ? dateLocal.substring(11, 16) : "";
+        const snappedTime = tp ? snapTo15Min(tp) : "";
+        setDatePart(dp);
+        setTimePart(snappedTime);
 
         setForm({
           name: event.name,
-          date: dateLocal,
+          date: dp && snappedTime ? `${dp}T${snappedTime}` : dateLocal,
           location: event.location || "",
           placeId: event.placeId || "",
           latitude: event.latitude || "",
@@ -201,13 +255,18 @@ function EditEventContent() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="date">Date & Time *</Label>
-            <Input
-              id="date"
-              type="datetime-local"
-              value={form.date}
-              onChange={(e) => updateField("date", e.target.value)}
-            />
+            <Label>Date & Time *</Label>
+            <div className="grid grid-cols-2 gap-3">
+              <Input
+                type="date"
+                value={datePart}
+                onChange={(e) => updateDateTime(e.target.value, timePart)}
+              />
+              <TimeSelect
+                value={timePart}
+                onChange={(val) => updateDateTime(datePart, val)}
+              />
+            </div>
           </div>
 
           <div className="space-y-2">

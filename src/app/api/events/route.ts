@@ -14,7 +14,11 @@ import { REMINDER_PRESETS } from "@/types";
 import { desc, eq } from "drizzle-orm";
 import { sendSMS } from "@/lib/sms/twilio";
 import { getTravelTime } from "@/lib/places/google";
-import { format, parseISO } from "date-fns";
+import {
+  naiveToUTC,
+  getDefaultTimezone,
+  formatEventTimeForTimezone,
+} from "@/lib/timezone";
 
 export async function GET() {
   const allEvents = await db.query.events.findMany({
@@ -58,12 +62,20 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // Look up creator's timezone and convert naive date to UTC
+  const creator = await db.query.familyMembers.findFirst({
+    where: eq(familyMembers.id, session.memberId),
+  });
+  const creatorTz =
+    creator?.timezone || (await getDefaultTimezone());
+  const utcDate = naiveToUTC(date, creatorTz);
+
   // Create the event
   const [newEvent] = await db
     .insert(events)
     .values({
       name: name.trim(),
-      date,
+      date: utcDate,
       endDate: null,
       location: location || null,
       placeId: placeId || null,
@@ -95,7 +107,7 @@ export async function POST(req: NextRequest) {
 
   // Create reminders based on presets
   if (reminderPresets?.length > 0) {
-    const eventDate = new Date(date);
+    const eventDate = new Date(utcDate);
     const reminderRows = reminderPresets
       .map((presetValue: string) => {
         const preset = REMINDER_PRESETS.find((p) => p.value === presetValue);
@@ -143,23 +155,25 @@ export async function POST(req: NextRequest) {
   // Travel time departure reminder
   if (placeId) {
     try {
-      const creator = await db.query.familyMembers.findFirst({
-        where: eq(familyMembers.id, session.memberId),
-      });
       if (creator?.homeAddress) {
         const travel = await getTravelTime(creator.homeAddress, placeId);
         if (travel && !travel.skip) {
-          const eventDate = new Date(date);
+          const eventDate = new Date(utcDate);
           const departureTime = new Date(
             eventDate.getTime() - (travel.durationMinutes + 15) * 60 * 1000
           );
           if (departureTime > new Date()) {
+            const localTime = formatEventTimeForTimezone(
+              utcDate,
+              creatorTz,
+              "h:mm a"
+            );
             await db.insert(reminders).values({
               eventId: newEvent.id,
               scheduledAt: departureTime.toISOString(),
               sendTo: "creator",
               status: "pending",
-              messageBody: `Time to head out! It's about ${travel.durationText} to ${location?.split(",")[0] || "your event"}. Your ${name.trim()} starts at ${format(parseISO(date), "h:mm a")}.`,
+              messageBody: `Time to head out! It's about ${travel.durationText} to ${location?.split(",")[0] || "your event"}. Your ${name.trim()} starts at ${localTime}.`,
             });
           }
         }
@@ -171,11 +185,12 @@ export async function POST(req: NextRequest) {
 
   // Send SMS confirmation to creator
   try {
-    const creator = await db.query.familyMembers.findFirst({
-      where: eq(familyMembers.id, session.memberId),
-    });
     if (creator?.phone && creator.isActive) {
-      const formattedDate = format(parseISO(date), "EEE, MMM d 'at' h:mm a");
+      const formattedDate = formatEventTimeForTimezone(
+        utcDate,
+        creatorTz,
+        "EEE, MMM d 'at' h:mm a"
+      );
       const locationInfo = location ? ` at ${location.split(",")[0]}` : "";
       const confirmMsg = `All set! I've added '${name.trim()}' on ${formattedDate}${locationInfo} to your calendar. Reminders are set!`;
 
@@ -221,6 +236,16 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: "Event ID required" }, { status: 400 });
   }
 
+  // Look up user's timezone for date conversion
+  const updater = await db.query.familyMembers.findFirst({
+    where: eq(familyMembers.id, session.memberId),
+  });
+  const updaterTz =
+    updater?.timezone || (await getDefaultTimezone());
+
+  // Convert date to UTC if provided
+  const utcDate = date ? naiveToUTC(date, updaterTz) : undefined;
+
   // Fetch current event for change tracking
   const existing = await db.query.events.findFirst({
     where: eq(events.id, id),
@@ -238,8 +263,8 @@ export async function PUT(req: NextRequest) {
   const changes: Record<string, { old: unknown; new: unknown }> = {};
   if (name !== undefined && name !== existing.name)
     changes.name = { old: existing.name, new: name };
-  if (date !== undefined && date !== existing.date)
-    changes.date = { old: existing.date, new: date };
+  if (utcDate !== undefined && utcDate !== existing.date)
+    changes.date = { old: existing.date, new: utcDate };
   if (location !== undefined && (location || null) !== (existing.location || null))
     changes.location = { old: existing.location, new: location || null };
   if (description !== undefined && (description || null) !== (existing.description || null))
@@ -250,7 +275,7 @@ export async function PUT(req: NextRequest) {
     .update(events)
     .set({
       name: name?.trim() || existing.name,
-      date: date || existing.date,
+      date: utcDate || existing.date,
       location: location !== undefined ? location || null : existing.location,
       placeId: placeId !== undefined ? placeId || null : existing.placeId,
       latitude: latitude !== undefined ? latitude || null : existing.latitude,
@@ -290,7 +315,7 @@ export async function PUT(req: NextRequest) {
     await db.delete(reminders).where(eq(reminders.eventId, id));
     // Create new ones
     if (reminderPresets.length > 0) {
-      const eventDate = new Date(date || existing.date);
+      const eventDate = new Date(utcDate || existing.date);
       const reminderRows = reminderPresets
         .map((presetValue: string) => {
           const preset = REMINDER_PRESETS.find((p) => p.value === presetValue);

@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const { name, phone, pin, isAdmin, homeAddress, homePlaceId } =
+  const { name, phone, pin, isAdmin, homeAddress, homePlaceId, timezone } =
     await req.json();
   if (!name?.trim() || !phone?.trim() || !pin?.trim()) {
     return NextResponse.json(
@@ -45,6 +45,7 @@ export async function POST(req: NextRequest) {
       pin: pin.trim(),
       isAdmin: isAdmin || false,
       isActive: false, // New members start inactive until they reply YES
+      timezone: timezone || null,
       homeAddress: homeAddress?.trim() || null,
       homePlaceId: homePlaceId || null,
     })
@@ -76,7 +77,7 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const { id, name, phone, pin, isAdmin, homeAddress, homePlaceId } =
+  const { id, name, phone, pin, isAdmin, homeAddress, homePlaceId, timezone } =
     await req.json();
   if (!id) {
     return NextResponse.json({ error: "ID is required" }, { status: 400 });
@@ -98,6 +99,7 @@ export async function PUT(req: NextRequest) {
   if (homeAddress !== undefined)
     updates.homeAddress = homeAddress?.trim() || null;
   if (homePlaceId !== undefined) updates.homePlaceId = homePlaceId || null;
+  if (timezone !== undefined) updates.timezone = timezone || null;
 
   const [updated] = await db
     .update(familyMembers)

@@ -12,6 +12,8 @@ const migrations = [
   `CREATE TABLE IF NOT EXISTS sms_log (id INTEGER PRIMARY KEY AUTOINCREMENT, reminder_id INTEGER REFERENCES reminders(id), member_id INTEGER REFERENCES family_members(id), phone TEXT NOT NULL, message_body TEXT NOT NULL, twilio_sid TEXT, direction TEXT NOT NULL DEFAULT 'outbound', status TEXT NOT NULL DEFAULT 'queued', created_at TEXT NOT NULL DEFAULT (datetime('now')))`,
   `CREATE TABLE IF NOT EXISTS saved_locations (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, address TEXT NOT NULL, place_id TEXT, latitude TEXT, longitude TEXT, location_type TEXT NOT NULL DEFAULT 'other', created_at TEXT NOT NULL DEFAULT (datetime('now')))`,
   `CREATE TABLE IF NOT EXISTS activity_log (id INTEGER PRIMARY KEY AUTOINCREMENT, action TEXT NOT NULL, entity_type TEXT NOT NULL, entity_id INTEGER NOT NULL, member_id INTEGER REFERENCES family_members(id), changes TEXT, created_at TEXT NOT NULL DEFAULT (datetime('now')))`,
+  // v1.3.0 - Site settings
+  `CREATE TABLE IF NOT EXISTS site_settings (key TEXT PRIMARY KEY, value TEXT NOT NULL)`,
 ];
 
 // ALTER TABLE migrations — these use a try/catch per statement since
@@ -20,6 +22,8 @@ const alterMigrations = [
   `ALTER TABLE family_members ADD COLUMN home_address TEXT`,
   `ALTER TABLE family_members ADD COLUMN home_place_id TEXT`,
   `ALTER TABLE family_members ADD COLUMN is_active INTEGER NOT NULL DEFAULT 1`,
+  // v1.3.0
+  `ALTER TABLE family_members ADD COLUMN timezone TEXT`,
 ];
 
 export async function POST() {
@@ -60,6 +64,23 @@ export async function POST() {
       } else {
         results.push(`✗ ${msg}`);
       }
+    }
+  }
+
+  // Seed site_settings with defaults (INSERT OR IGNORE = idempotent)
+  const seedStatements = [
+    `INSERT OR IGNORE INTO site_settings (key, value) VALUES ('siteName', 'Family Calendar')`,
+    `INSERT OR IGNORE INTO site_settings (key, value) VALUES ('siteSlogan', 'Keep everyone on the same page')`,
+    `INSERT OR IGNORE INTO site_settings (key, value) VALUES ('defaultTimezone', 'America/New_York')`,
+  ];
+
+  for (const sql of seedStatements) {
+    try {
+      await client.execute(sql);
+      results.push(`✓ Seed: ${sql.substring(45, 90)}...`);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      results.push(`- Seed skipped: ${msg}`);
     }
   }
 

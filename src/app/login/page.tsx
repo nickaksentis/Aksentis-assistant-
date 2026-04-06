@@ -26,12 +26,19 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [siteName, setSiteName] = useState("Family Calendar");
 
   useEffect(() => {
     fetch("/api/members")
       .then((res) => res.json())
       .then(setMembers)
       .catch(() => setError("Failed to load family members"));
+    fetch("/api/settings")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.siteName) setSiteName(data.siteName);
+      })
+      .catch(() => {});
   }, []);
 
   async function handleLogin(e: React.FormEvent) {
@@ -65,7 +72,7 @@ export default function LoginPage() {
           <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
             <CalendarDays className="h-6 w-6 text-primary" />
           </div>
-          <CardTitle>Family Calendar</CardTitle>
+          <CardTitle>{siteName}</CardTitle>
           <CardDescription>
             Select your name and enter your password
           </CardDescription>
@@ -108,9 +115,6 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
-              <p className="text-xs text-muted-foreground">
-                At least 6 characters with 1 number
-              </p>
             </div>
 
             {error && (

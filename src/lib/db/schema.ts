@@ -7,6 +7,7 @@ export const familyMembers = sqliteTable("family_members", {
   pin: text("pin").notNull(),
   isAdmin: integer("is_admin", { mode: "boolean" }).notNull().default(false),
   isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
+  timezone: text("timezone"),
   homeAddress: text("home_address"),
   homePlaceId: text("home_place_id"),
   createdAt: text("created_at")
@@ -90,6 +91,11 @@ export const activityLog = sqliteTable("activity_log", {
   createdAt: text("created_at")
     .notNull()
     .$defaultFn(() => new Date().toISOString()),
+});
+
+export const siteSettings = sqliteTable("site_settings", {
+  key: text("key").primaryKey(),
+  value: text("value").notNull(),
 });
 
 export const savedLocations = sqliteTable("saved_locations", {

@@ -1,4 +1,4 @@
-export const CURRENT_VERSION = "1.2.0";
+export const CURRENT_VERSION = "1.3.0";
 
 export const REVISION_LOG = [
   {
@@ -49,6 +49,22 @@ export const REVISION_LOG = [
       "Persistent cookie sessions (30-day login)",
       "Logout button on home page next to admin link",
       "Privacy Policy and Terms links on home page",
+    ],
+  },
+  {
+    version: "1.3.0",
+    date: "2026-04-06",
+    changes: [
+      "Remove password hint from login page",
+      "Time input restricted to 15-minute intervals (00, 15, 30, 45)",
+      "Admin General Settings page: edit site name, slogan, and default timezone",
+      "Dynamic site name and slogan on home page and login page",
+      "Admin Saved Locations page: add (with Google search), edit, delete locations",
+      "Per-user timezone field on member profiles",
+      "Timezone-aware event storage: dates converted to UTC on save",
+      "Timezone-aware SMS reminders: event times displayed in each recipient's local timezone",
+      "Edit event page converts UTC dates back to user's local timezone",
+      "Site settings table with seed data via auto-migration",
     ],
   },
 ];

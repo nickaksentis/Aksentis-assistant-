@@ -10,7 +10,7 @@ import {
 import { eq, lte, and } from "drizzle-orm";
 import { generateReminderMessage } from "@/lib/ai/generate-reminder";
 import { sendSMS } from "@/lib/sms/twilio";
-import { format, parseISO } from "date-fns";
+import { formatEventTimeForTimezone } from "@/lib/timezone";
 
 export async function POST(req: NextRequest) {
   const authHeader = req.headers.get("authorization");
@@ -80,14 +80,15 @@ export async function POST(req: NextRequest) {
       for (const recipient of recipients) {
         if (!recipient?.phone) continue;
 
+        const recipientTz = recipient.timezone || "America/New_York";
         const messageBody =
           reminder.messageBody ||
           (await generateReminderMessage({
             recipientName: recipient.name,
             eventName: event.name,
-            eventDate: format(
-              parseISO(event.date),
-              "EEEE, MMMM d 'at' h:mm a"
+            eventDate: formatEventTimeForTimezone(
+              event.date,
+              recipientTz
             ),
             eventLocation: event.location,
           }));

@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { LocationSearch } from "@/components/location-search";
 import { FamilyMemberSelect } from "@/components/family-member-select";
 import { REMINDER_PRESETS } from "@/types";
+import { TimeSelect } from "@/components/time-select";
 import { Loader2 } from "lucide-react";
 
 interface EventFormData {
@@ -34,9 +35,26 @@ export function EventForm({ initialData }: EventFormProps) {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
 
+  // Split initial date into date and time parts
+  const initDate = initialData?.date || "";
+  const initDatePart = initDate ? initDate.substring(0, 10) : "";
+  const initTimePart = initDate ? initDate.substring(11, 16) : "";
+  const [datePart, setDatePart] = useState(initDatePart);
+  const [timePart, setTimePart] = useState(initTimePart);
+
+  function updateDateTime(newDate: string, newTime: string) {
+    setDatePart(newDate);
+    setTimePart(newTime);
+    if (newDate && newTime) {
+      updateField("date", `${newDate}T${newTime}`);
+    } else {
+      updateField("date", "");
+    }
+  }
+
   const [form, setForm] = useState<EventFormData>({
     name: initialData?.name || "",
-    date: initialData?.date || "",
+    date: initDate,
     location: initialData?.location || "",
     placeId: initialData?.placeId || "",
     latitude: initialData?.latitude || "",
@@ -118,13 +136,18 @@ export function EventForm({ initialData }: EventFormProps) {
 
       {/* Date & Time */}
       <div className="space-y-2">
-        <Label htmlFor="date">Date & Time *</Label>
-        <Input
-          id="date"
-          type="datetime-local"
-          value={form.date}
-          onChange={(e) => updateField("date", e.target.value)}
-        />
+        <Label>Date & Time *</Label>
+        <div className="grid grid-cols-2 gap-3">
+          <Input
+            type="date"
+            value={datePart}
+            onChange={(e) => updateDateTime(e.target.value, timePart)}
+          />
+          <TimeSelect
+            value={timePart}
+            onChange={(val) => updateDateTime(datePart, val)}
+          />
+        </div>
       </div>
 
       {/* Location */}

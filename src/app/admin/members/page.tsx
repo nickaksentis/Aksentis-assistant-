@@ -15,19 +15,40 @@ interface Member {
   isAdmin: boolean;
   isActive: boolean;
   homeAddress: string | null;
+  timezone: string | null;
 }
+
+const TIMEZONE_OPTIONS = [
+  { value: "America/New_York", label: "Eastern (New York)" },
+  { value: "America/Chicago", label: "Central (Chicago)" },
+  { value: "America/Denver", label: "Mountain (Denver)" },
+  { value: "America/Los_Angeles", label: "Pacific (Los Angeles)" },
+  { value: "America/Anchorage", label: "Alaska (Anchorage)" },
+  { value: "Pacific/Honolulu", label: "Hawaii (Honolulu)" },
+  { value: "America/Phoenix", label: "Arizona (Phoenix, no DST)" },
+  { value: "America/Puerto_Rico", label: "Atlantic (Puerto Rico)" },
+  { value: "Europe/London", label: "UK (London)" },
+  { value: "Europe/Paris", label: "Central Europe (Paris)" },
+  { value: "Europe/Berlin", label: "Central Europe (Berlin)" },
+  { value: "Asia/Tokyo", label: "Japan (Tokyo)" },
+  { value: "Asia/Shanghai", label: "China (Shanghai)" },
+  { value: "Asia/Kolkata", label: "India (Kolkata)" },
+  { value: "Australia/Sydney", label: "Australia (Sydney)" },
+];
 
 export default function AdminMembersPage() {
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [defaultTz, setDefaultTz] = useState("America/New_York");
   const [form, setForm] = useState({
     name: "",
     phone: "",
     pin: "",
     isAdmin: false,
     homeAddress: "",
+    timezone: "America/New_York",
   });
   const [error, setError] = useState("");
   const [testingSmsFor, setTestingSmsFor] = useState<number | null>(null);
@@ -43,6 +64,15 @@ export default function AdminMembersPage() {
 
   useEffect(() => {
     loadMembers();
+    fetch("/api/settings")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.defaultTimezone) {
+          setDefaultTz(data.defaultTimezone);
+          setForm((f) => ({ ...f, timezone: data.defaultTimezone }));
+        }
+      })
+      .catch(() => {});
   }, []);
 
   async function handleAdd() {
@@ -54,7 +84,7 @@ export default function AdminMembersPage() {
     });
     if (res.ok) {
       setShowAdd(false);
-      setForm({ name: "", phone: "", pin: "", isAdmin: false, homeAddress: "" });
+      setForm({ name: "", phone: "", pin: "", isAdmin: false, homeAddress: "", timezone: defaultTz });
       loadMembers();
     } else {
       const data = await res.json();
@@ -71,7 +101,7 @@ export default function AdminMembersPage() {
     });
     if (res.ok) {
       setEditingId(null);
-      setForm({ name: "", phone: "", pin: "", isAdmin: false, homeAddress: "" });
+      setForm({ name: "", phone: "", pin: "", isAdmin: false, homeAddress: "", timezone: defaultTz });
       loadMembers();
     } else {
       const data = await res.json();
@@ -118,6 +148,7 @@ export default function AdminMembersPage() {
       pin: "",
       isAdmin: member.isAdmin,
       homeAddress: member.homeAddress || "",
+      timezone: member.timezone || defaultTz,
     });
     setShowAdd(false);
   }
@@ -140,7 +171,7 @@ export default function AdminMembersPage() {
             onClick={() => {
               setShowAdd(true);
               setEditingId(null);
-              setForm({ name: "", phone: "", pin: "", isAdmin: false, homeAddress: "" });
+              setForm({ name: "", phone: "", pin: "", isAdmin: false, homeAddress: "", timezone: defaultTz });
             }}
           >
             <Plus className="h-4 w-4" />
@@ -202,6 +233,22 @@ export default function AdminMembersPage() {
                 }
                 placeholder="123 Main St, City, State"
               />
+            </div>
+            <div className="space-y-2">
+              <Label>Time Zone</Label>
+              <select
+                value={form.timezone}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, timezone: e.target.value }))
+                }
+                className="flex h-10 w-full rounded-md border border-input bg-input px-3 py-2 text-sm text-foreground ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                {TIMEZONE_OPTIONS.map((tz) => (
+                  <option key={tz.value} value={tz.value}>
+                    {tz.label}
+                  </option>
+                ))}
+              </select>
             </div>
             <label className="flex items-center gap-2 text-sm">
               <input

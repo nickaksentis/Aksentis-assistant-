@@ -6,7 +6,11 @@ import {
   reminders,
   smsLog,
   activityLog,
+  siteSettings,
 } from "./schema";
+
+// siteSettings is a key-value table with no relations
+void siteSettings;
 
 export const familyMembersRelations = relations(familyMembers, ({ many }) => ({
   events: many(events),

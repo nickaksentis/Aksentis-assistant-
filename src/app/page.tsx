@@ -1,11 +1,24 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CalendarPlus, CalendarDays, Settings, LogOut } from "lucide-react";
 
 export default function Home() {
   const router = useRouter();
+  const [siteName, setSiteName] = useState("Family Calendar");
+  const [siteSlogan, setSiteSlogan] = useState("Keep everyone on the same page");
+
+  useEffect(() => {
+    fetch("/api/settings")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.siteName) setSiteName(data.siteName);
+        if (data.siteSlogan) setSiteSlogan(data.siteSlogan);
+      })
+      .catch(() => {});
+  }, []);
 
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -18,10 +31,8 @@ export default function Home() {
         <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
           <CalendarDays className="h-8 w-8 text-primary" />
         </div>
-        <h1 className="text-3xl font-bold tracking-tight">Family Calendar</h1>
-        <p className="mt-2 text-muted-foreground">
-          Keep everyone on the same page
-        </p>
+        <h1 className="text-3xl font-bold tracking-tight">{siteName}</h1>
+        <p className="mt-2 text-muted-foreground">{siteSlogan}</p>
       </div>
 
       <div className="w-full max-w-sm space-y-4">
