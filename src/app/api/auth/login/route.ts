@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
   });
 
   if (!member || member.pin !== pin) {
-    return NextResponse.json({ error: "Invalid PIN" }, { status: 401 });
+    return NextResponse.json({ error: "Invalid password" }, { status: 401 });
   }
 
   if (!member.isActive) {

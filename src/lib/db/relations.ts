@@ -5,6 +5,7 @@ import {
   eventAttendees,
   reminders,
   smsLog,
+  activityLog,
 } from "./schema";
 
 export const familyMembersRelations = relations(familyMembers, ({ many }) => ({
@@ -49,6 +50,13 @@ export const smsLogRelations = relations(smsLog, ({ one }) => ({
   }),
   member: one(familyMembers, {
     fields: [smsLog.memberId],
+    references: [familyMembers.id],
+  }),
+}));
+
+export const activityLogRelations = relations(activityLog, ({ one }) => ({
+  member: one(familyMembers, {
+    fields: [activityLog.memberId],
     references: [familyMembers.id],
   }),
 }));

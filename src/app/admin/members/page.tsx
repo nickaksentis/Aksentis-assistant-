@@ -179,14 +179,19 @@ export default function AdminMembersPage() {
             </div>
             <div className="space-y-2">
               <Label>
-                {editingId ? "New PIN (leave blank to keep)" : "PIN"}
+                {editingId
+                  ? "New Password (leave blank to keep)"
+                  : "Password"}
               </Label>
               <Input
                 type="password"
                 value={form.pin}
                 onChange={(e) => setForm((f) => ({ ...f, pin: e.target.value }))}
-                placeholder="1234"
+                placeholder="Min 6 chars, 1 number"
               />
+              <p className="text-xs text-muted-foreground">
+                At least 6 characters with 1 number
+              </p>
             </div>
             <div className="space-y-2">
               <Label>Home Address</Label>

@@ -24,7 +24,15 @@ export async function POST(req: NextRequest) {
     await req.json();
   if (!name?.trim() || !phone?.trim() || !pin?.trim()) {
     return NextResponse.json(
-      { error: "Name, phone, and PIN are required" },
+      { error: "Name, phone, and password are required" },
+      { status: 400 }
+    );
+  }
+
+  // Password validation: at least 6 chars, at least 1 number
+  if (pin.trim().length < 6 || !/\d/.test(pin.trim())) {
+    return NextResponse.json(
+      { error: "Password must be at least 6 characters with at least 1 number" },
       { status: 400 }
     );
   }
@@ -72,6 +80,14 @@ export async function PUT(req: NextRequest) {
     await req.json();
   if (!id) {
     return NextResponse.json({ error: "ID is required" }, { status: 400 });
+  }
+
+  // Validate password if provided
+  if (pin?.trim() && (pin.trim().length < 6 || !/\d/.test(pin.trim()))) {
+    return NextResponse.json(
+      { error: "Password must be at least 6 characters with at least 1 number" },
+      { status: 400 }
+    );
   }
 
   const updates: Record<string, unknown> = {};

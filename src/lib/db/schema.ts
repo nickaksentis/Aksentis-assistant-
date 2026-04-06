@@ -80,6 +80,18 @@ export const smsLog = sqliteTable("sms_log", {
     .$defaultFn(() => new Date().toISOString()),
 });
 
+export const activityLog = sqliteTable("activity_log", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  action: text("action").notNull(), // "event_created", "event_updated"
+  entityType: text("entity_type").notNull(), // "event"
+  entityId: integer("entity_id").notNull(),
+  memberId: integer("member_id").references(() => familyMembers.id),
+  changes: text("changes"), // JSON string of { field: { old, new } }
+  createdAt: text("created_at")
+    .notNull()
+    .$defaultFn(() => new Date().toISOString()),
+});
+
 export const savedLocations = sqliteTable("saved_locations", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   name: text("name").notNull(),

@@ -18,9 +18,10 @@ interface EventData {
 interface EventListProps {
   events: EventData[];
   selectedDate: Date | null;
+  currentUserId?: number;
 }
 
-export function EventList({ events, selectedDate }: EventListProps) {
+export function EventList({ events, selectedDate, currentUserId }: EventListProps) {
   const filteredEvents = useMemo(() => {
     if (!selectedDate) return events;
     return events.filter((e) => isSameDay(parseISO(e.date), selectedDate));
@@ -33,7 +34,6 @@ export function EventList({ events, selectedDate }: EventListProps) {
       if (!groups[key]) groups[key] = [];
       groups[key].push(event);
     });
-    // Sort groups by date ascending
     return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
   }, [filteredEvents]);
 
@@ -61,7 +61,11 @@ export function EventList({ events, selectedDate }: EventListProps) {
                   new Date(a.date).getTime() - new Date(b.date).getTime()
               )
               .map((event) => (
-                <EventCard key={event.id} event={event} />
+                <EventCard
+                  key={event.id}
+                  event={event}
+                  currentUserId={currentUserId}
+                />
               ))}
           </div>
         </div>

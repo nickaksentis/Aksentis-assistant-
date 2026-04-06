@@ -1,7 +1,17 @@
+"use client";
+
 import Link from "next/link";
-import { CalendarPlus, CalendarDays, Settings } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { CalendarPlus, CalendarDays, Settings, LogOut } from "lucide-react";
 
 export default function Home() {
+  const router = useRouter();
+
+  async function handleLogout() {
+    await fetch("/api/auth/logout", { method: "POST" });
+    router.push("/login");
+  }
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background p-6">
       <div className="mb-12 text-center">
@@ -30,13 +40,32 @@ export default function Home() {
         </Link>
       </div>
 
-      <Link
-        href="/admin"
-        className="mt-8 flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-      >
-        <Settings className="h-4 w-4" />
-        Admin
-      </Link>
+      <div className="mt-8 flex items-center gap-4">
+        <Link
+          href="/admin"
+          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <Settings className="h-4 w-4" />
+          Admin
+        </Link>
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <LogOut className="h-3.5 w-3.5" />
+          Log out
+        </button>
+      </div>
+
+      <div className="mt-6 flex items-center gap-3 text-xs text-muted-foreground/60">
+        <Link href="/privacy" className="hover:text-muted-foreground transition-colors">
+          Privacy Policy
+        </Link>
+        <span>&middot;</span>
+        <Link href="/terms" className="hover:text-muted-foreground transition-colors">
+          Terms & Conditions
+        </Link>
+      </div>
     </div>
   );
 }

@@ -22,6 +22,7 @@ export default function EventsPage() {
   const [events, setEvents] = useState<EventData[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<number | undefined>();
 
   useEffect(() => {
     fetch("/api/events")
@@ -31,13 +32,19 @@ export default function EventsPage() {
         setLoading(false);
       })
       .catch(() => setLoading(false));
+
+    fetch("/api/auth/me")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.memberId) setCurrentUserId(data.memberId);
+      })
+      .catch(() => {});
   }, []);
 
   const eventDates = events.map((e) => e.date);
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Header */}
       <div className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur">
         <div className="mx-auto max-w-lg flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-3">
@@ -58,7 +65,6 @@ export default function EventsPage() {
       </div>
 
       <div className="mx-auto max-w-lg w-full flex-1 flex flex-col">
-        {/* Calendar */}
         <div className="px-4 py-4 border-b">
           <CalendarView
             eventDates={eventDates}
@@ -82,14 +88,17 @@ export default function EventsPage() {
           )}
         </div>
 
-        {/* Event List */}
         <div className="flex-1 px-4 py-4">
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
           ) : (
-            <EventList events={events} selectedDate={selectedDate} />
+            <EventList
+              events={events}
+              selectedDate={selectedDate}
+              currentUserId={currentUserId}
+            />
           )}
         </div>
       </div>

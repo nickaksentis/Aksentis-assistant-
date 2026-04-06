@@ -7,6 +7,7 @@ import {
   familyMembers,
   savedLocations,
   smsLog,
+  activityLog,
 } from "@/lib/db/schema";
 import { getSession } from "@/lib/auth";
 import { REMINDER_PRESETS } from "@/types";
@@ -72,6 +73,15 @@ export async function POST(req: NextRequest) {
       createdBy: session.memberId,
     })
     .returning();
+
+  // Log event creation
+  await db.insert(activityLog).values({
+    action: "event_created",
+    entityType: "event",
+    entityId: newEvent.id,
+    memberId: session.memberId,
+    changes: null,
+  });
 
   // Add attendees
   if (attendees?.length > 0) {
@@ -184,6 +194,139 @@ export async function POST(req: NextRequest) {
   }
 
   return NextResponse.json(newEvent, { status: 201 });
+}
+
+export async function PUT(req: NextRequest) {
+  const session = await getSession();
+  if (!session.isLoggedIn) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const body = await req.json();
+  const {
+    id,
+    name,
+    date,
+    location,
+    placeId,
+    latitude,
+    longitude,
+    description,
+    attendees,
+    reminderPresets,
+    reminderRecipients,
+  } = body;
+
+  if (!id) {
+    return NextResponse.json({ error: "Event ID required" }, { status: 400 });
+  }
+
+  // Fetch current event for change tracking
+  const existing = await db.query.events.findFirst({
+    where: eq(events.id, id),
+    with: {
+      attendees: { with: { member: true } },
+      reminders: true,
+    },
+  });
+
+  if (!existing) {
+    return NextResponse.json({ error: "Event not found" }, { status: 404 });
+  }
+
+  // Build changes object (only modified fields)
+  const changes: Record<string, { old: unknown; new: unknown }> = {};
+  if (name !== undefined && name !== existing.name)
+    changes.name = { old: existing.name, new: name };
+  if (date !== undefined && date !== existing.date)
+    changes.date = { old: existing.date, new: date };
+  if (location !== undefined && (location || null) !== (existing.location || null))
+    changes.location = { old: existing.location, new: location || null };
+  if (description !== undefined && (description || null) !== (existing.description || null))
+    changes.description = { old: existing.description, new: description || null };
+
+  // Update the event
+  const [updated] = await db
+    .update(events)
+    .set({
+      name: name?.trim() || existing.name,
+      date: date || existing.date,
+      location: location !== undefined ? location || null : existing.location,
+      placeId: placeId !== undefined ? placeId || null : existing.placeId,
+      latitude: latitude !== undefined ? latitude || null : existing.latitude,
+      longitude: longitude !== undefined ? longitude || null : existing.longitude,
+      description: description !== undefined ? description || null : existing.description,
+      updatedAt: new Date().toISOString(),
+    })
+    .where(eq(events.id, id))
+    .returning();
+
+  // Update attendees if provided
+  if (attendees !== undefined) {
+    const oldAttendees = existing.attendees?.map((a) => a.member.name).sort().join(", ") || "";
+    await db.delete(eventAttendees).where(eq(eventAttendees.eventId, id));
+    if (attendees.length > 0) {
+      await db.insert(eventAttendees).values(
+        attendees.map((memberId: number) => ({
+          eventId: id,
+          memberId,
+        }))
+      );
+    }
+    // Fetch new attendee names for change log
+    const newAttendeeRows = await db.query.eventAttendees.findMany({
+      where: eq(eventAttendees.eventId, id),
+      with: { member: true },
+    });
+    const newAttendeeNames = newAttendeeRows.map((a) => a.member.name).sort().join(", ") || "";
+    if (oldAttendees !== newAttendeeNames) {
+      changes.attendees = { old: oldAttendees, new: newAttendeeNames };
+    }
+  }
+
+  // Update reminders if provided
+  if (reminderPresets !== undefined) {
+    // Delete old reminders
+    await db.delete(reminders).where(eq(reminders.eventId, id));
+    // Create new ones
+    if (reminderPresets.length > 0) {
+      const eventDate = new Date(date || existing.date);
+      const reminderRows = reminderPresets
+        .map((presetValue: string) => {
+          const preset = REMINDER_PRESETS.find((p) => p.value === presetValue);
+          if (!preset) return null;
+          const scheduledAt = new Date(
+            eventDate.getTime() - preset.minutes * 60 * 1000
+          );
+          if (scheduledAt <= new Date()) return null;
+          return {
+            eventId: id,
+            scheduledAt: scheduledAt.toISOString(),
+            sendTo: (reminderRecipients || "creator") as "creator" | "attendees" | "all",
+            status: "pending" as const,
+          };
+        })
+        .filter(Boolean);
+      if (reminderRows.length > 0) {
+        await db
+          .insert(reminders)
+          .values(reminderRows as typeof reminders.$inferInsert[]);
+      }
+    }
+  }
+
+  // Log the edit with changes
+  if (Object.keys(changes).length > 0) {
+    await db.insert(activityLog).values({
+      action: "event_updated",
+      entityType: "event",
+      entityId: id,
+      memberId: session.memberId,
+      changes: JSON.stringify(changes),
+    });
+  }
+
+  return NextResponse.json(updated);
 }
 
 export async function DELETE(req: NextRequest) {

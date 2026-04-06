@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Trash2, Search, Bell, BellOff } from "lucide-react";
+import { ArrowLeft, Trash2, Search, Bell, BellOff, Pencil } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { format, parseISO } from "date-fns";
 
 interface EventData {
@@ -20,6 +21,7 @@ interface EventData {
 }
 
 export default function AdminEventsPage() {
+  const router = useRouter();
   const [events, setEvents] = useState<EventData[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -109,13 +111,26 @@ export default function AdminEventsPage() {
                       </p>
                     )}
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleDelete(event.id)}
-                  >
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
+                  <div className="flex gap-1 shrink-0">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() =>
+                        router.push(
+                          `/edit-event?id=${event.id}&from=/admin/events`
+                        )
+                      }
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleDelete(event.id)}
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
                 </div>
 
                 <div className="flex items-center gap-3 text-xs text-muted-foreground">

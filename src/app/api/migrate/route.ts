@@ -11,6 +11,7 @@ const migrations = [
   `CREATE TABLE IF NOT EXISTS reminders (id INTEGER PRIMARY KEY AUTOINCREMENT, event_id INTEGER NOT NULL REFERENCES events(id) ON DELETE CASCADE, scheduled_at TEXT NOT NULL, send_to TEXT NOT NULL DEFAULT 'creator', status TEXT NOT NULL DEFAULT 'pending', message_body TEXT, sent_at TEXT)`,
   `CREATE TABLE IF NOT EXISTS sms_log (id INTEGER PRIMARY KEY AUTOINCREMENT, reminder_id INTEGER REFERENCES reminders(id), member_id INTEGER REFERENCES family_members(id), phone TEXT NOT NULL, message_body TEXT NOT NULL, twilio_sid TEXT, direction TEXT NOT NULL DEFAULT 'outbound', status TEXT NOT NULL DEFAULT 'queued', created_at TEXT NOT NULL DEFAULT (datetime('now')))`,
   `CREATE TABLE IF NOT EXISTS saved_locations (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, address TEXT NOT NULL, place_id TEXT, latitude TEXT, longitude TEXT, location_type TEXT NOT NULL DEFAULT 'other', created_at TEXT NOT NULL DEFAULT (datetime('now')))`,
+  `CREATE TABLE IF NOT EXISTS activity_log (id INTEGER PRIMARY KEY AUTOINCREMENT, action TEXT NOT NULL, entity_type TEXT NOT NULL, entity_id INTEGER NOT NULL, member_id INTEGER REFERENCES family_members(id), changes TEXT, created_at TEXT NOT NULL DEFAULT (datetime('now')))`,
 ];
 
 // ALTER TABLE migrations — these use a try/catch per statement since

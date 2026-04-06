@@ -23,7 +23,7 @@ export default function LoginPage() {
   const router = useRouter();
   const [members, setMembers] = useState<Member[]>([]);
   const [selectedMember, setSelectedMember] = useState<number | null>(null);
-  const [pin, setPin] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -46,7 +46,7 @@ export default function LoginPage() {
     const res = await fetch("/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ memberId: selectedMember, pin }),
+      body: JSON.stringify({ memberId: selectedMember, pin: password }),
     });
 
     if (res.ok) {
@@ -66,7 +66,9 @@ export default function LoginPage() {
             <CalendarDays className="h-6 w-6 text-primary" />
           </div>
           <CardTitle>Family Calendar</CardTitle>
-          <CardDescription>Select your name and enter your PIN</CardDescription>
+          <CardDescription>
+            Select your name and enter your password
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
@@ -98,17 +100,17 @@ export default function LoginPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="pin">PIN</Label>
+              <Label htmlFor="password">Password</Label>
               <Input
-                id="pin"
+                id="password"
                 type="password"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                maxLength={6}
-                placeholder="Enter your PIN"
-                value={pin}
-                onChange={(e) => setPin(e.target.value)}
+                placeholder="Enter your password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
               />
+              <p className="text-xs text-muted-foreground">
+                At least 6 characters with 1 number
+              </p>
             </div>
 
             {error && (
@@ -118,7 +120,7 @@ export default function LoginPage() {
             <Button
               type="submit"
               className="w-full"
-              disabled={!selectedMember || !pin || loading}
+              disabled={!selectedMember || !password || loading}
             >
               {loading ? "Signing in..." : "Sign In"}
             </Button>
