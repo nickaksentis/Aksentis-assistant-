@@ -78,6 +78,7 @@ export const smsLog = sqliteTable("sms_log", {
   direction: text("direction", { enum: ["inbound", "outbound"] })
     .notNull()
     .default("outbound"),
+  channel: text("channel"),
   status: text("status").notNull().default("queued"),
   createdAt: text("created_at")
     .notNull()

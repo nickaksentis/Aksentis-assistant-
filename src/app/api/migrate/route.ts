@@ -30,6 +30,8 @@ const alterMigrations = [
   `ALTER TABLE family_members ADD COLUMN home_lng TEXT`,
   // v1.4.0
   `ALTER TABLE family_members ADD COLUMN preferred_channel TEXT`,
+  // v1.4.1
+  `ALTER TABLE sms_log ADD COLUMN channel TEXT`,
 ];
 
 // Check if migrations are needed (compare stored schema version to app version)

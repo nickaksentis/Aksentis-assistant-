@@ -105,6 +105,7 @@ export async function POST(req: NextRequest) {
             twilioSid: result.sid,
             direction: "outbound",
             status: "sent",
+            channel: result.channel,
           });
         } catch (msgErr) {
           console.error(`Failed to send message to ${recipient.phone}:`, msgErr);
@@ -115,6 +116,7 @@ export async function POST(req: NextRequest) {
             messageBody,
             direction: "outbound",
             status: "failed",
+            channel: (recipient.preferredChannel as Channel) || undefined,
           });
         }
       }

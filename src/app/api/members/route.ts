@@ -102,6 +102,7 @@ export async function POST(req: NextRequest) {
       twilioSid: result.sid,
       direction: "outbound",
       status: "sent",
+      channel: result.channel,
     });
   } catch {
     // Activation message is best-effort during member creation

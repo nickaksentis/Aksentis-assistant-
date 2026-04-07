@@ -22,6 +22,7 @@ interface SmsLogEntry {
   twilioSid: string | null;
   direction: string;
   status: string;
+  channel: string | null;
   createdAt: string;
   memberId: number | null;
   memberName: string | null;
@@ -168,7 +169,7 @@ export default function AdminUsagePage() {
                 : "bg-background text-foreground border-input hover:bg-accent"
             }`}
           >
-            SMS Logs
+            Message Logs
           </button>
           <button
             onClick={() => setTab("activity")}
@@ -234,7 +235,7 @@ export default function AdminUsagePage() {
               </div>
             ) : logs.length === 0 ? (
               <p className="text-center text-muted-foreground py-8">
-                No SMS logs found.
+                No message logs found.
               </p>
             ) : (
               <div className="space-y-2">
@@ -263,11 +264,22 @@ export default function AdminUsagePage() {
                         {log.status}
                       </span>
                     </div>
-                    <p className="text-xs text-muted-foreground line-clamp-2">
+                    <p className="text-xs text-muted-foreground whitespace-pre-wrap break-words">
                       {log.messageBody}
                     </p>
                     <div className="flex items-center justify-between text-xs text-muted-foreground">
-                      <span>{log.phone}</span>
+                      <div className="flex items-center gap-1.5">
+                        <span>{log.phone}</span>
+                        {log.channel && (
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                            log.channel === "whatsapp"
+                              ? "bg-green-500/15 text-green-400"
+                              : "bg-blue-500/15 text-blue-400"
+                          }`}>
+                            {log.channel === "whatsapp" ? "WhatsApp" : "SMS"}
+                          </span>
+                        )}
+                      </div>
                       <span>
                         {format(parseISO(log.createdAt), "MMM d, h:mm a")}
                       </span>

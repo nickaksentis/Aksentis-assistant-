@@ -34,6 +34,7 @@ export async function GET(req: NextRequest) {
       twilioSid: smsLog.twilioSid,
       direction: smsLog.direction,
       status: smsLog.status,
+      channel: smsLog.channel,
       createdAt: smsLog.createdAt,
       memberId: smsLog.memberId,
       memberName: familyMembers.name,

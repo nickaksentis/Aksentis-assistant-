@@ -17,11 +17,14 @@ export type InboundChannel = "sms" | "whatsapp";
  * Returns TwiML response string.
  */
 export async function handleInboundMessage(
-  phone: string,
+  rawPhone: string,
   body: string,
   messageSid: string | null,
   channel: InboundChannel
 ): Promise<string> {
+  // Normalize phone: strip whatsapp: prefix and whitespace
+  const phone = rawPhone.replace(/^whatsapp:/, "").trim();
+
   // Log inbound message
   await db.insert(smsLog).values({
     phone,
@@ -29,6 +32,7 @@ export async function handleInboundMessage(
     twilioSid: messageSid || null,
     direction: "inbound",
     status: "received",
+    channel,
   });
 
   // Check if sender is a registered family member
@@ -43,6 +47,7 @@ export async function handleInboundMessage(
       messageBody: `[SPAM BLOCKED] Unknown number attempted: ${body}`,
       direction: "inbound",
       status: "spam_blocked",
+      channel,
     });
 
     return generateTwimlResponse(
@@ -66,6 +71,7 @@ export async function handleInboundMessage(
       messageBody: activationMsg,
       direction: "outbound",
       status: "sent",
+      channel,
     });
 
     return generateTwimlResponse(activationMsg);
@@ -79,6 +85,7 @@ export async function handleInboundMessage(
       messageBody: `[INACTIVE BLOCKED] ${body}`,
       direction: "inbound",
       status: "inactive_blocked",
+      channel,
     });
 
     return generateTwimlResponse(
@@ -162,7 +169,6 @@ export async function handleInboundMessage(
         ? ` Reminders set for ${presetValues.join(", ")} before.`
         : "";
 
-    const channelLabel = channel === "whatsapp" ? "WhatsApp" : "SMS";
     const confirmation = `Got it! Added '${parsed.name}' on ${formattedDate}.${parsed.location ? ` At ${parsed.location}.` : ""}${reminderInfo}`;
 
     // Log outbound response
@@ -172,6 +178,7 @@ export async function handleInboundMessage(
       messageBody: confirmation,
       direction: "outbound",
       status: "sent",
+      channel,
     });
 
     return generateTwimlResponse(confirmation);

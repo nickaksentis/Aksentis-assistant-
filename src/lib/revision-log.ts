@@ -1,4 +1,4 @@
-export const CURRENT_VERSION = "1.4.0";
+export const CURRENT_VERSION = "1.4.1";
 
 export const REVISION_LOG = [
   {
@@ -127,6 +127,17 @@ export const REVISION_LOG = [
       "Channel badge (SMS/WhatsApp) shown on member cards",
       "Test message button routes to member's preferred channel",
       "Reminders sent via member's preferred channel",
+    ],
+  },
+  {
+    version: "1.4.1",
+    date: "2026-04-07",
+    changes: [
+      "Fix WhatsApp inbound: strip whatsapp: prefix from phone for member matching",
+      "Channel tracking: sms_log now records whether message was SMS or WhatsApp",
+      "Channel badge (SMS/WhatsApp) shown on usage log entries",
+      "Full message content displayed in logs (removed 2-line truncation)",
+      "Tab renamed from 'SMS Logs' to 'Message Logs'",
     ],
   },
 ];

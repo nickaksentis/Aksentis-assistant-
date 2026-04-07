@@ -38,6 +38,7 @@ export async function POST(req: NextRequest) {
       twilioSid: result.sid,
       direction: "outbound",
       status: "sent",
+      channel: result.channel,
     });
 
     return NextResponse.json({
@@ -56,6 +57,7 @@ export async function POST(req: NextRequest) {
       messageBody: `[TEST FAILED] ${testMsg}`,
       direction: "outbound",
       status: "failed",
+      channel: channel || undefined,
     });
 
     return NextResponse.json(
