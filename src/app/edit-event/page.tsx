@@ -11,7 +11,7 @@ import { LocationSearch } from "@/components/location-search";
 import { FamilyMemberSelect } from "@/components/family-member-select";
 import { TimeSelect } from "@/components/time-select";
 import { REMINDER_PRESETS } from "@/types";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2, Trash2 } from "lucide-react";
 
 interface EventData {
   id: number;
@@ -57,8 +57,11 @@ function EditEventContent() {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [createdBy, setCreatedBy] = useState<number | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
 
   const [form, setForm] = useState({
     name: "",
@@ -143,6 +146,9 @@ function EditEventContent() {
         setDatePart(dp);
         setTimePart(snappedTime);
 
+        setCreatedBy(event.createdBy);
+        if (meData?.memberId) setCurrentUserId(meData.memberId);
+
         // Reverse-engineer active reminder presets from stored scheduledAt values
         const activePresets: string[] = [];
         if (event.reminders?.length && event.date) {
@@ -193,6 +199,27 @@ function EditEventContent() {
         ? prev.reminderPresets.filter((p) => p !== preset)
         : [...prev.reminderPresets, preset],
     }));
+  }
+
+  async function handleDelete() {
+    if (!confirm("Are you sure you want to delete this event? This cannot be undone.")) return;
+    setDeleting(true);
+    setError("");
+    try {
+      const res = await fetch("/api/events", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: Number(eventId) }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to delete event");
+      }
+      router.push(returnTo);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong");
+      setDeleting(false);
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -254,7 +281,23 @@ function EditEventContent() {
               <ArrowLeft className="h-5 w-5" />
             </Button>
           </Link>
-          <h1 className="text-lg font-semibold">Edit Event</h1>
+          <h1 className="text-lg font-semibold flex-1">Edit Event</h1>
+          {createdBy !== null && currentUserId === createdBy && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleDelete}
+              disabled={deleting}
+              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+              title="Delete event"
+            >
+              {deleting ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <Trash2 className="h-5 w-5" />
+              )}
+            </Button>
+          )}
         </div>
       </div>
 

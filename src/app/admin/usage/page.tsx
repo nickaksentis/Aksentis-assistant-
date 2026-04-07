@@ -12,6 +12,12 @@ import {
   Pencil,
   PlusCircle,
   Clock,
+  Trash2,
+  Settings,
+  User,
+  MapPin,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { useRouter } from "next/navigation";
@@ -90,7 +96,16 @@ export default function AdminUsagePage() {
   const [filter, setFilter] = useState<string>("all");
   const [reminderFilter, setReminderFilter] = useState<string>("all");
 
-  async function loadLogs(direction?: string) {
+  // Pagination
+  const [pageSize, setPageSize] = useState(25);
+  const [smsPage, setSmsPage] = useState(0);
+  const [smsTotal, setSmsTotal] = useState(0);
+  const [activityPage, setActivityPage] = useState(0);
+  const [activityTotal, setActivityTotal] = useState(0);
+  const [reminderPage, setReminderPage] = useState(0);
+  const [reminderTotal, setReminderTotal] = useState(0);
+
+  async function loadLogs(direction?: string, page = 0, limit = pageSize) {
     setLoading(true);
     const params = new URLSearchParams();
     if (direction && direction !== "all") {
@@ -100,48 +115,59 @@ export default function AdminUsagePage() {
         params.set("direction", direction);
       }
     }
+    params.set("limit", String(limit));
+    params.set("offset", String(page * limit));
     const res = await fetch(`/api/admin/usage?${params}`);
     if (res.ok) {
       const data = await res.json();
       setLogs(data.logs);
       setCounts(data.counts);
+      setSmsTotal(data.total || 0);
     }
     setLoading(false);
   }
 
-  async function loadActivity() {
+  async function loadActivity(page = 0, limit = pageSize) {
     setLoading(true);
-    const res = await fetch("/api/admin/activity");
+    const params = new URLSearchParams();
+    params.set("limit", String(limit));
+    params.set("offset", String(page * limit));
+    const res = await fetch(`/api/admin/activity?${params}`);
     if (res.ok) {
-      setActivityLogs(await res.json());
+      const data = await res.json();
+      setActivityLogs(data.logs);
+      setActivityTotal(data.total || 0);
     }
     setLoading(false);
   }
 
-  async function loadReminders(statusFilter?: string) {
+  async function loadReminders(statusFilter?: string, page = 0, limit = pageSize) {
     setLoading(true);
     const params = new URLSearchParams();
     if (statusFilter && statusFilter !== "all") {
       params.set("status", statusFilter === "scheduled" ? "pending" : statusFilter);
     }
+    params.set("limit", String(limit));
+    params.set("offset", String(page * limit));
     const res = await fetch(`/api/admin/reminders?${params}`);
     if (res.ok) {
       const data = await res.json();
       setReminderLogs(data.logs);
       setReminderCounts(data.counts);
+      setReminderTotal(data.total || 0);
     }
     setLoading(false);
   }
 
   useEffect(() => {
     if (tab === "sms") {
-      loadLogs(filter);
+      loadLogs(filter, smsPage, pageSize);
     } else if (tab === "activity") {
-      loadActivity();
+      loadActivity(activityPage, pageSize);
     } else {
-      loadReminders(reminderFilter);
+      loadReminders(reminderFilter, reminderPage, pageSize);
     }
-  }, [filter, tab, reminderFilter]);
+  }, [filter, tab, reminderFilter, smsPage, activityPage, reminderPage, pageSize]);
 
   function getStatusColor(status: string) {
     switch (status) {
@@ -188,6 +214,61 @@ export default function AdminUsagePage() {
     } catch {
       return null;
     }
+  }
+
+  function handlePageSizeChange(newSize: number) {
+    setPageSize(newSize);
+    setSmsPage(0);
+    setActivityPage(0);
+    setReminderPage(0);
+  }
+
+  function PageSizeDropdown() {
+    return (
+      <select
+        value={pageSize}
+        onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+        className="rounded-lg border border-input bg-background px-2 py-1.5 text-xs font-medium"
+      >
+        <option value={25}>25</option>
+        <option value={50}>50</option>
+        <option value={100}>100</option>
+      </select>
+    );
+  }
+
+  function Pagination({
+    page,
+    total,
+    onPageChange,
+  }: {
+    page: number;
+    total: number;
+    onPageChange: (p: number) => void;
+  }) {
+    const totalPages = Math.ceil(total / pageSize);
+    if (totalPages <= 1) return null;
+    return (
+      <div className="flex items-center justify-center gap-3 pt-4">
+        <button
+          onClick={() => onPageChange(page - 1)}
+          disabled={page === 0}
+          className="rounded-lg border border-input p-1.5 disabled:opacity-30 hover:bg-accent transition-colors"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </button>
+        <span className="text-xs text-muted-foreground">
+          Page {page + 1} of {totalPages}
+        </span>
+        <button
+          onClick={() => onPageChange(page + 1)}
+          disabled={page >= totalPages - 1}
+          className="rounded-lg border border-input p-1.5 disabled:opacity-30 hover:bg-accent transition-colors"
+        >
+          <ChevronRight className="h-4 w-4" />
+        </button>
+      </div>
+    );
   }
 
   return (
@@ -257,20 +338,23 @@ export default function AdminUsagePage() {
             </div>
 
             {/* Filters */}
-            <div className="flex flex-wrap gap-2">
-              {["all", "scheduled", "sent"].map((f) => (
-                <button
-                  key={f}
-                  onClick={() => setReminderFilter(f)}
-                  className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors border ${
-                    reminderFilter === f
-                      ? "bg-primary text-primary-foreground border-primary"
-                      : "bg-background text-foreground border-input hover:bg-accent"
-                  }`}
-                >
-                  {f === "all" ? "All" : f === "scheduled" ? "Scheduled" : "Sent"}
-                </button>
-              ))}
+            <div className="flex items-center gap-2">
+              <div className="flex flex-wrap gap-2 flex-1">
+                {["all", "scheduled", "sent"].map((f) => (
+                  <button
+                    key={f}
+                    onClick={() => { setReminderFilter(f); setReminderPage(0); }}
+                    className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors border ${
+                      reminderFilter === f
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-background text-foreground border-input hover:bg-accent"
+                    }`}
+                  >
+                    {f === "all" ? "All" : f === "scheduled" ? "Scheduled" : "Sent"}
+                  </button>
+                ))}
+              </div>
+              <PageSizeDropdown />
             </div>
 
             {/* Reminder List */}
@@ -372,6 +456,7 @@ export default function AdminUsagePage() {
                 })}
               </div>
             )}
+            <Pagination page={reminderPage} total={reminderTotal} onPageChange={setReminderPage} />
           </>
         ) : tab === "sms" ? (
           <>
@@ -396,26 +481,29 @@ export default function AdminUsagePage() {
             </div>
 
             {/* Filters */}
-            <div className="flex flex-wrap gap-2">
-              {["all", "outbound", "inbound", "spam"].map((f) => (
-                <button
-                  key={f}
-                  onClick={() => setFilter(f)}
-                  className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors border ${
-                    filter === f
-                      ? "bg-primary text-primary-foreground border-primary"
-                      : "bg-background text-foreground border-input hover:bg-accent"
-                  }`}
-                >
-                  {f === "all"
-                    ? "All"
-                    : f === "outbound"
-                      ? "Sent"
-                      : f === "inbound"
-                        ? "Received"
-                        : "Spam"}
-                </button>
-              ))}
+            <div className="flex items-center gap-2">
+              <div className="flex flex-wrap gap-2 flex-1">
+                {["all", "outbound", "inbound", "spam"].map((f) => (
+                  <button
+                    key={f}
+                    onClick={() => { setFilter(f); setSmsPage(0); }}
+                    className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors border ${
+                      filter === f
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-background text-foreground border-input hover:bg-accent"
+                    }`}
+                  >
+                    {f === "all"
+                      ? "All"
+                      : f === "outbound"
+                        ? "Sent"
+                        : f === "inbound"
+                          ? "Received"
+                          : "Spam"}
+                  </button>
+                ))}
+              </div>
+              <PageSizeDropdown />
             </div>
 
             {/* SMS Log List */}
@@ -483,10 +571,14 @@ export default function AdminUsagePage() {
                 ))}
               </div>
             )}
+            <Pagination page={smsPage} total={smsTotal} onPageChange={setSmsPage} />
           </>
         ) : (
           /* Activity Log Tab */
           <>
+            <div className="flex justify-end">
+              <PageSizeDropdown />
+            </div>
             {loading ? (
               <div className="flex justify-center py-8">
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -497,48 +589,109 @@ export default function AdminUsagePage() {
               </p>
             ) : (
               <div className="space-y-2">
-                {activityLogs.map((entry) => (
-                  <div
-                    key={entry.id}
-                    className="rounded-xl border bg-card p-3 space-y-1 overflow-hidden"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 min-w-0">
-                        {entry.action === "event_created" ? (
-                          <PlusCircle className="h-3.5 w-3.5 text-green-400 shrink-0" />
-                        ) : (
-                          <Pencil className="h-3.5 w-3.5 text-blue-400 shrink-0" />
+                {activityLogs.map((entry) => {
+                  // Determine icon, label, and whether an edit link makes sense
+                  let Icon = Pencil;
+                  let iconColor = "text-blue-400";
+                  let actionLabel = entry.action;
+                  let editLink: string | null = null;
+
+                  switch (entry.action) {
+                    case "event_created":
+                      Icon = PlusCircle; iconColor = "text-green-400";
+                      actionLabel = "created an event";
+                      editLink = `/edit-event?id=${entry.entityId}&from=/admin/usage`;
+                      break;
+                    case "event_updated":
+                      Icon = Pencil; iconColor = "text-blue-400";
+                      actionLabel = "edited an event";
+                      editLink = `/edit-event?id=${entry.entityId}&from=/admin/usage`;
+                      break;
+                    case "event_deleted":
+                      Icon = Trash2; iconColor = "text-red-400";
+                      actionLabel = "deleted an event";
+                      break;
+                    case "settings_updated":
+                      Icon = Settings; iconColor = "text-purple-400";
+                      actionLabel = "updated settings";
+                      break;
+                    case "member_created":
+                      Icon = PlusCircle; iconColor = "text-green-400";
+                      actionLabel = "added a member";
+                      break;
+                    case "member_updated":
+                      Icon = User; iconColor = "text-blue-400";
+                      actionLabel = "updated a member profile";
+                      break;
+                    case "member_deleted":
+                      Icon = Trash2; iconColor = "text-red-400";
+                      actionLabel = "removed a member";
+                      break;
+                    case "location_created":
+                      Icon = MapPin; iconColor = "text-green-400";
+                      actionLabel = "added a location";
+                      break;
+                    case "location_updated":
+                      Icon = MapPin; iconColor = "text-blue-400";
+                      actionLabel = "updated a location";
+                      break;
+                    case "location_deleted":
+                      Icon = Trash2; iconColor = "text-red-400";
+                      actionLabel = "deleted a location";
+                      break;
+                  }
+
+                  // Extract entity name from changes if available
+                  let entityName = "";
+                  try {
+                    if (entry.changes) {
+                      const c = JSON.parse(entry.changes);
+                      if (c.name && typeof c.name === "string") entityName = c.name;
+                      else if (c.name?.new) entityName = String(c.name.new);
+                    }
+                  } catch { /* ignore */ }
+
+                  return (
+                    <div
+                      key={entry.id}
+                      className="rounded-xl border bg-card p-3 space-y-1 overflow-hidden"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Icon className={`h-3.5 w-3.5 ${iconColor} shrink-0`} />
+                          <span className="text-sm font-medium truncate">
+                            {entry.memberName || "System"}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {actionLabel}
+                          </span>
+                        </div>
+                        {editLink && (
+                          <button
+                            onClick={() => router.push(editLink!)}
+                            className="p-1 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                            title="Edit"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </button>
                         )}
-                        <span className="text-sm font-medium truncate">
-                          {entry.memberName || "Unknown"}
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          {entry.action === "event_created"
-                            ? "created an event"
-                            : "edited an event"}
-                        </span>
                       </div>
-                      <button
-                        onClick={() =>
-                          router.push(
-                            `/edit-event?id=${entry.entityId}&from=/admin/usage`
-                          )
-                        }
-                        className="p-1 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground transition-colors shrink-0"
-                        title="Edit event"
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                      </button>
+                      {entityName && (
+                        <p className="text-xs font-medium text-foreground/80">
+                          {entityName}
+                        </p>
+                      )}
+                      {(entry.action.endsWith("_updated") || entry.action === "settings_updated") &&
+                        renderChanges(entry.changes)}
+                      <div className="text-xs text-muted-foreground">
+                        {format(parseISO(entry.createdAt), "MMM d, h:mm a")}
+                      </div>
                     </div>
-                    {entry.action === "event_updated" &&
-                      renderChanges(entry.changes)}
-                    <div className="text-xs text-muted-foreground">
-                      {format(parseISO(entry.createdAt), "MMM d, h:mm a")}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
+            <Pagination page={activityPage} total={activityTotal} onPageChange={setActivityPage} />
           </>
         )}
       </div>

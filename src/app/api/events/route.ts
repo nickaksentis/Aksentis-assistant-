@@ -366,6 +366,23 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: "Event ID required" }, { status: 400 });
   }
 
+  // Fetch event name before deleting for activity log
+  const existing = await db.query.events.findFirst({
+    where: eq(events.id, id),
+  });
+
   await db.delete(events).where(eq(events.id, id));
+
+  // Log event deletion
+  if (existing) {
+    await db.insert(activityLog).values({
+      action: "event_deleted",
+      entityType: "event",
+      entityId: id,
+      memberId: session.memberId,
+      changes: JSON.stringify({ name: existing.name }),
+    });
+  }
+
   return NextResponse.json({ success: true });
 }

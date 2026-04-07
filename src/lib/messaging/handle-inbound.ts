@@ -50,9 +50,16 @@ export async function handleInboundMessage(
       channel,
     });
 
-    return generateTwimlResponse(
-      "Sorry, this number isn't registered with the family calendar."
-    );
+    const unregisteredMsg =
+      "Sorry, this number isn't registered with the family calendar.";
+    await db.insert(smsLog).values({
+      phone,
+      messageBody: unregisteredMsg,
+      direction: "outbound",
+      status: "sent",
+      channel,
+    });
+    return generateTwimlResponse(unregisteredMsg);
   }
 
   // Handle YES activation response
@@ -88,9 +95,17 @@ export async function handleInboundMessage(
       channel,
     });
 
-    return generateTwimlResponse(
-      "Your account isn't active yet. Reply YES to activate."
-    );
+    const inactiveMsg =
+      "Your account isn't active yet. Reply YES to activate.";
+    await db.insert(smsLog).values({
+      memberId: member.id,
+      phone,
+      messageBody: inactiveMsg,
+      direction: "outbound",
+      status: "sent",
+      channel,
+    });
+    return generateTwimlResponse(inactiveMsg);
   }
 
   // Parse the message with AI
@@ -107,9 +122,17 @@ export async function handleInboundMessage(
     );
 
     if (!parsed.name || !parsed.date) {
-      return generateTwimlResponse(
-        "I couldn't understand that. Try something like: 'Soccer practice Tuesday at 4pm at Lincoln Park'"
-      );
+      const replyMsg =
+        "I couldn't understand that. Try something like: 'Soccer practice Tuesday at 4pm at Lincoln Park'";
+      await db.insert(smsLog).values({
+        memberId: member.id,
+        phone,
+        messageBody: replyMsg,
+        direction: "outbound",
+        status: "sent",
+        channel,
+      });
+      return generateTwimlResponse(replyMsg);
     }
 
     // Convert parsed date to UTC using sender's timezone
@@ -184,8 +207,16 @@ export async function handleInboundMessage(
     return generateTwimlResponse(confirmation);
   } catch (err) {
     console.error(`Inbound ${channel} processing error:`, err);
-    return generateTwimlResponse(
-      "Sorry, something went wrong processing your message. Please try again."
-    );
+    const errorMsg =
+      "Sorry, something went wrong processing your message. Please try again.";
+    await db.insert(smsLog).values({
+      memberId: member.id,
+      phone,
+      messageBody: errorMsg,
+      direction: "outbound",
+      status: "sent",
+      channel,
+    });
+    return generateTwimlResponse(errorMsg);
   }
 }

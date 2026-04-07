@@ -15,7 +15,8 @@ export async function GET(req: NextRequest) {
   const status = url.searchParams.get("status");
   const from = url.searchParams.get("from");
   const to = url.searchParams.get("to");
-  const limit = parseInt(url.searchParams.get("limit") || "100");
+  const limit = parseInt(url.searchParams.get("limit") || "25");
+  const offset = parseInt(url.searchParams.get("offset") || "0");
 
   // Build conditions
   const conditions = [];
@@ -43,7 +44,8 @@ export async function GET(req: NextRequest) {
     .leftJoin(familyMembers, eq(smsLog.memberId, familyMembers.id))
     .where(where)
     .orderBy(desc(smsLog.createdAt))
-    .limit(limit);
+    .limit(limit)
+    .offset(offset);
 
   // Get summary counts
   const [counts] = await db
@@ -56,5 +58,11 @@ export async function GET(req: NextRequest) {
     })
     .from(smsLog);
 
-  return NextResponse.json({ logs, counts });
+  // Get filtered total for pagination
+  const [filteredCount] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(smsLog)
+    .where(where);
+
+  return NextResponse.json({ logs, counts, total: filteredCount.count });
 }

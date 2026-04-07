@@ -1,4 +1,4 @@
-export const CURRENT_VERSION = "1.4.2";
+export const CURRENT_VERSION = "1.4.3";
 
 export const REVISION_LOG = [
   {
@@ -150,6 +150,19 @@ export const REVISION_LOG = [
       "Reminder cards show event name, offset label, fire time, recipients, and channel",
       "Filter pills for All, Scheduled, and Sent reminders",
       "Summary counts for scheduled, sent, and failed reminders",
+    ],
+  },
+  {
+    version: "1.4.3",
+    date: "2026-04-07",
+    changes: [
+      "Delete button on edit event page (visible to event creator only)",
+      "All AI/system responses to inbound messages now logged in Message Logs",
+      "Per-page limit dropdown (25/50/100) on all Usage & Logs tabs",
+      "Pagination controls at bottom of each tab",
+      "Activity logging for settings updates, member profile CRUD, and saved location CRUD",
+      "Activity log displays icons and labels for all entity types (events, members, settings, locations)",
+      "Event deletion logged in activity log",
     ],
   },
 ];

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { familyMembers, smsLog } from "@/lib/db/schema";
+import { familyMembers, smsLog, activityLog } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { getSession } from "@/lib/auth";
 import { sendMessage, type Channel } from "@/lib/messaging/send";
@@ -89,6 +89,15 @@ export async function POST(req: NextRequest) {
       preferredChannel: preferredChannel || null,
     })
     .returning();
+
+  // Log member creation
+  await db.insert(activityLog).values({
+    action: "member_created",
+    entityType: "member",
+    entityId: member.id,
+    memberId: session.memberId,
+    changes: JSON.stringify({ name: member.name }),
+  });
 
   // Send activation message via preferred channel
   try {
@@ -187,11 +196,36 @@ export async function PUT(req: NextRequest) {
     }
   }
 
+  // Fetch existing member for change tracking
+  const existing = await db.query.familyMembers.findFirst({
+    where: eq(familyMembers.id, id),
+  });
+
   const [updated] = await db
     .update(familyMembers)
     .set(updates)
     .where(eq(familyMembers.id, id))
     .returning();
+
+  // Log member update with changes
+  if (existing) {
+    const changes: Record<string, { old: unknown; new: unknown }> = {};
+    for (const [key, value] of Object.entries(updates)) {
+      const oldVal = (existing as Record<string, unknown>)[key];
+      if (oldVal !== value) {
+        changes[key] = { old: oldVal ?? null, new: value ?? null };
+      }
+    }
+    if (Object.keys(changes).length > 0) {
+      await db.insert(activityLog).values({
+        action: "member_updated",
+        entityType: "member",
+        entityId: id,
+        memberId: session.memberId,
+        changes: JSON.stringify(changes),
+      });
+    }
+  }
 
   return NextResponse.json({ ...updated, geocodeStatus });
 }
@@ -208,6 +242,22 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: "ID is required" }, { status: 400 });
   }
 
+  // Fetch member name before deleting
+  const existing = await db.query.familyMembers.findFirst({
+    where: eq(familyMembers.id, id),
+  });
+
   await db.delete(familyMembers).where(eq(familyMembers.id, id));
+
+  if (existing) {
+    await db.insert(activityLog).values({
+      action: "member_deleted",
+      entityType: "member",
+      entityId: id,
+      memberId: session.memberId,
+      changes: JSON.stringify({ name: existing.name }),
+    });
+  }
+
   return NextResponse.json({ success: true });
 }

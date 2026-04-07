@@ -16,6 +16,8 @@ export async function GET(req: NextRequest) {
   }
 
   const status = req.nextUrl.searchParams.get("status");
+  const limit = parseInt(req.nextUrl.searchParams.get("limit") || "25");
+  const offset = parseInt(req.nextUrl.searchParams.get("offset") || "0");
 
   // Fetch all reminders with event info
   const allReminders = await db.query.reminders.findMany({
@@ -94,5 +96,8 @@ export async function GET(req: NextRequest) {
     failed: allReminders.filter((r) => r.status === "failed").length,
   };
 
-  return NextResponse.json({ logs, counts });
+  const total = logs.length;
+  const paginatedLogs = logs.slice(offset, offset + limit);
+
+  return NextResponse.json({ logs: paginatedLogs, counts, total });
 }
