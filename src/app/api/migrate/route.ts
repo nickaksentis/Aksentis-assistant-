@@ -28,6 +28,8 @@ const alterMigrations = [
   // v1.3.2
   `ALTER TABLE family_members ADD COLUMN home_lat TEXT`,
   `ALTER TABLE family_members ADD COLUMN home_lng TEXT`,
+  // v1.4.0
+  `ALTER TABLE family_members ADD COLUMN preferred_channel TEXT`,
 ];
 
 // Check if migrations are needed (compare stored schema version to app version)
@@ -102,6 +104,7 @@ export async function POST() {
     `INSERT OR IGNORE INTO site_settings (key, value) VALUES ('siteName', 'Family Calendar')`,
     `INSERT OR IGNORE INTO site_settings (key, value) VALUES ('siteSlogan', 'Keep everyone on the same page')`,
     `INSERT OR IGNORE INTO site_settings (key, value) VALUES ('defaultTimezone', 'America/New_York')`,
+    `INSERT OR IGNORE INTO site_settings (key, value) VALUES ('defaultChannel', 'sms')`,
   ];
 
   for (const sql of seedStatements) {

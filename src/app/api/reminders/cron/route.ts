@@ -9,7 +9,7 @@ import {
 } from "@/lib/db/schema";
 import { eq, lte, and } from "drizzle-orm";
 import { generateReminderMessage } from "@/lib/ai/generate-reminder";
-import { sendSMS } from "@/lib/sms/twilio";
+import { sendMessage, type Channel } from "@/lib/messaging/send";
 import { formatEventTimeForTimezone } from "@/lib/timezone";
 
 export async function POST(req: NextRequest) {
@@ -94,19 +94,20 @@ export async function POST(req: NextRequest) {
           }));
 
         try {
-          const twilioSid = await sendSMS(recipient.phone, messageBody);
+          const channel = (recipient.preferredChannel as Channel) || undefined;
+          const result = await sendMessage(recipient.phone, messageBody, channel);
 
           await db.insert(smsLog).values({
             reminderId: reminder.id,
             memberId: recipient.id,
             phone: recipient.phone,
             messageBody,
-            twilioSid,
+            twilioSid: result.sid,
             direction: "outbound",
             status: "sent",
           });
-        } catch (smsErr) {
-          console.error(`Failed to send SMS to ${recipient.phone}:`, smsErr);
+        } catch (msgErr) {
+          console.error(`Failed to send message to ${recipient.phone}:`, msgErr);
           await db.insert(smsLog).values({
             reminderId: reminder.id,
             memberId: recipient.id,

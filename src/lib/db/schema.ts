@@ -12,6 +12,7 @@ export const familyMembers = sqliteTable("family_members", {
   homePlaceId: text("home_place_id"),
   homeLat: text("home_lat"),
   homeLng: text("home_lng"),
+  preferredChannel: text("preferred_channel"),
   createdAt: text("created_at")
     .notNull()
     .$defaultFn(() => new Date().toISOString()),

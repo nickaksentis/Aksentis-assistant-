@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { familyMembers, smsLog } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { getSession } from "@/lib/auth";
-import { sendSMS } from "@/lib/sms/twilio";
+import { sendMessage, type Channel } from "@/lib/messaging/send";
 
 // Public: returns id + name only (for login page and attendee picker)
 export async function GET() {
@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const { name, phone, pin, isAdmin, homeAddress, homePlaceId, homeLat: manualLat, homeLng: manualLng, timezone } =
+  const { name, phone, pin, isAdmin, homeAddress, homePlaceId, homeLat: manualLat, homeLng: manualLng, timezone, preferredChannel } =
     await req.json();
   if (!name?.trim() || !phone?.trim() || !pin?.trim()) {
     return NextResponse.json(
@@ -86,23 +86,25 @@ export async function POST(req: NextRequest) {
       homePlaceId: homePlaceId || null,
       homeLat,
       homeLng,
+      preferredChannel: preferredChannel || null,
     })
     .returning();
 
-  // Send activation SMS
+  // Send activation message via preferred channel
   try {
+    const channel = (preferredChannel as Channel) || undefined;
     const activationMsg = `Hi ${member.name}! You've been added to the Family Calendar Assistant. Reply YES to activate your account.`;
-    const sid = await sendSMS(member.phone, activationMsg);
+    const result = await sendMessage(member.phone, activationMsg, channel);
     await db.insert(smsLog).values({
       memberId: member.id,
       phone: member.phone,
       messageBody: activationMsg,
-      twilioSid: sid,
+      twilioSid: result.sid,
       direction: "outbound",
       status: "sent",
     });
   } catch {
-    // SMS is best-effort during member creation
+    // Activation message is best-effort during member creation
   }
 
   return NextResponse.json({ ...member, geocodeStatus }, { status: 201 });
@@ -115,7 +117,7 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const { id, name, phone, pin, isAdmin, homeAddress, homePlaceId, homeLat: manualLat, homeLng: manualLng, timezone } =
+  const { id, name, phone, pin, isAdmin, homeAddress, homePlaceId, homeLat: manualLat, homeLng: manualLng, timezone, preferredChannel } =
     await req.json();
   if (!id) {
     return NextResponse.json({ error: "ID is required" }, { status: 400 });
@@ -138,6 +140,7 @@ export async function PUT(req: NextRequest) {
     updates.homeAddress = homeAddress?.trim() || null;
   if (homePlaceId !== undefined) updates.homePlaceId = homePlaceId || null;
   if (timezone !== undefined) updates.timezone = timezone || null;
+  if (preferredChannel !== undefined) updates.preferredChannel = preferredChannel || null;
 
   // Use manually provided lat/lng if present
   let geocodeStatus = "skipped";

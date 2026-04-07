@@ -34,6 +34,7 @@ export default function AdminSettingsPage() {
     siteName: "Family Calendar",
     siteSlogan: "Keep everyone on the same page",
     defaultTimezone: "America/New_York",
+    defaultChannel: "sms",
   });
 
   useEffect(() => {
@@ -44,6 +45,7 @@ export default function AdminSettingsPage() {
           siteName: data.siteName || "Family Calendar",
           siteSlogan: data.siteSlogan || "Keep everyone on the same page",
           defaultTimezone: data.defaultTimezone || "America/New_York",
+          defaultChannel: data.defaultChannel || "sms",
         });
         setLoading(false);
       })
@@ -143,6 +145,27 @@ export default function AdminSettingsPage() {
                 </select>
                 <p className="text-xs text-muted-foreground">
                   Default timezone for new members
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="defaultChannel">Default Messaging Channel</Label>
+                <select
+                  id="defaultChannel"
+                  value={form.defaultChannel}
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      defaultChannel: e.target.value,
+                    }))
+                  }
+                  className="flex h-10 w-full rounded-md border border-input bg-input px-3 py-2 text-sm text-foreground ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <option value="sms">SMS (Twilio)</option>
+                  <option value="whatsapp">WhatsApp (Twilio)</option>
+                </select>
+                <p className="text-xs text-muted-foreground">
+                  Used when a member has no channel preference set
                 </p>
               </div>
             </div>

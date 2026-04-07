@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { familyMembers, smsLog } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { getSession } from "@/lib/auth";
-import { sendSMS } from "@/lib/sms/twilio";
+import { sendMessage, type Channel } from "@/lib/messaging/send";
 
 export async function POST(req: NextRequest) {
   const session = await getSession();
@@ -24,24 +24,27 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Member not found" }, { status: 404 });
   }
 
-  const testMsg = `Hi ${member.name}! This is a test message from your Family Calendar Assistant. If you received this, SMS is working correctly for your account.`;
+  const channel = (member.preferredChannel as Channel) || undefined;
+  const channelLabel = channel === "whatsapp" ? "WhatsApp" : "SMS";
+  const testMsg = `Hi ${member.name}! This is a test message from your Family Calendar Assistant. If you received this, ${channelLabel} is working correctly for your account.`;
 
   try {
-    const sid = await sendSMS(member.phone, testMsg);
+    const result = await sendMessage(member.phone, testMsg, channel);
 
     await db.insert(smsLog).values({
       memberId: member.id,
       phone: member.phone,
       messageBody: testMsg,
-      twilioSid: sid,
+      twilioSid: result.sid,
       direction: "outbound",
       status: "sent",
     });
 
     return NextResponse.json({
       success: true,
-      message: `Test SMS sent to ${member.phone}`,
-      twilioSid: sid,
+      message: `Test ${result.channel === "whatsapp" ? "WhatsApp" : "SMS"} sent to ${member.phone}`,
+      twilioSid: result.sid,
+      channel: result.channel,
     });
   } catch (err) {
     const errorMsg =
@@ -56,7 +59,7 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json(
-      { error: `SMS failed: ${errorMsg}` },
+      { error: `Message failed: ${errorMsg}` },
       { status: 500 }
     );
   }

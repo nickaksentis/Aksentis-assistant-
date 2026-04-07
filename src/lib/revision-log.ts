@@ -1,4 +1,4 @@
-export const CURRENT_VERSION = "1.3.5";
+export const CURRENT_VERSION = "1.4.0";
 
 export const REVISION_LOG = [
   {
@@ -112,6 +112,21 @@ export const REVISION_LOG = [
       "Geocode button on member form to test and populate coordinates",
       "Debug logging for all geocode calls (visible in server logs)",
       "Geocode status feedback after saving member profile",
+    ],
+  },
+  {
+    version: "1.4.0",
+    date: "2026-04-07",
+    changes: [
+      "WhatsApp messaging support via Twilio (sandbox or production)",
+      "Per-user messaging channel preference (SMS or WhatsApp)",
+      "Global default messaging channel in General Settings",
+      "Unified sendMessage() routing: routes to SMS or WhatsApp per member preference",
+      "WhatsApp inbound webhook for AI-powered event creation via WhatsApp",
+      "Shared inbound message handler for SMS and WhatsApp",
+      "Channel badge (SMS/WhatsApp) shown on member cards",
+      "Test message button routes to member's preferred channel",
+      "Reminders sent via member's preferred channel",
     ],
   },
 ];

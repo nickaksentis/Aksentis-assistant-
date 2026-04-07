@@ -19,6 +19,7 @@ interface Member {
   homeLat: string | null;
   homeLng: string | null;
   timezone: string | null;
+  preferredChannel: string | null;
 }
 
 const TIMEZONE_OPTIONS = [
@@ -45,6 +46,7 @@ export default function AdminMembersPage() {
   const [showAdd, setShowAdd] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [defaultTz, setDefaultTz] = useState("America/New_York");
+  const [defaultChannel, setDefaultChannel] = useState("sms");
   const [form, setForm] = useState({
     name: "",
     phone: "",
@@ -55,6 +57,7 @@ export default function AdminMembersPage() {
     homeLat: "",
     homeLng: "",
     timezone: "America/New_York",
+    preferredChannel: "",
   });
   const [error, setError] = useState("");
   const [testingSmsFor, setTestingSmsFor] = useState<number | null>(null);
@@ -79,6 +82,9 @@ export default function AdminMembersPage() {
         if (data.defaultTimezone) {
           setDefaultTz(data.defaultTimezone);
           setForm((f) => ({ ...f, timezone: data.defaultTimezone }));
+        }
+        if (data.defaultChannel) {
+          setDefaultChannel(data.defaultChannel);
         }
       })
       .catch(() => {});
@@ -130,7 +136,7 @@ export default function AdminMembersPage() {
         setSaveGeoStatus(data.geocodeStatus);
       }
       setShowAdd(false);
-      setForm({ name: "", phone: "", pin: "", isAdmin: false, homeAddress: "", homePlaceId: "", homeLat: "", homeLng: "", timezone: defaultTz });
+      setForm({ name: "", phone: "", pin: "", isAdmin: false, homeAddress: "", homePlaceId: "", homeLat: "", homeLng: "", timezone: defaultTz, preferredChannel: "" });
       loadMembers();
     } else {
       setError(data.error || "Failed to add member");
@@ -151,7 +157,7 @@ export default function AdminMembersPage() {
         setSaveGeoStatus(data.geocodeStatus);
       }
       setEditingId(null);
-      setForm({ name: "", phone: "", pin: "", isAdmin: false, homeAddress: "", homePlaceId: "", homeLat: "", homeLng: "", timezone: defaultTz });
+      setForm({ name: "", phone: "", pin: "", isAdmin: false, homeAddress: "", homePlaceId: "", homeLat: "", homeLng: "", timezone: defaultTz, preferredChannel: "" });
       loadMembers();
     } else {
       setError(data.error || "Failed to update member");
@@ -201,6 +207,7 @@ export default function AdminMembersPage() {
       homeLat: member.homeLat || "",
       homeLng: member.homeLng || "",
       timezone: member.timezone || defaultTz,
+      preferredChannel: member.preferredChannel || "",
     });
     setShowAdd(false);
   }
@@ -223,7 +230,7 @@ export default function AdminMembersPage() {
             onClick={() => {
               setShowAdd(true);
               setEditingId(null);
-              setForm({ name: "", phone: "", pin: "", isAdmin: false, homeAddress: "", homePlaceId: "", homeLat: "", homeLng: "", timezone: defaultTz });
+              setForm({ name: "", phone: "", pin: "", isAdmin: false, homeAddress: "", homePlaceId: "", homeLat: "", homeLng: "", timezone: defaultTz, preferredChannel: "" });
             }}
           >
             <Plus className="h-4 w-4" />
@@ -364,6 +371,20 @@ export default function AdminMembersPage() {
                 ))}
               </select>
             </div>
+            <div className="space-y-2">
+              <Label>Messaging Channel</Label>
+              <select
+                value={form.preferredChannel}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, preferredChannel: e.target.value }))
+                }
+                className="flex h-10 w-full rounded-md border border-input bg-input px-3 py-2 text-sm text-foreground ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <option value="">Use Default ({defaultChannel === "whatsapp" ? "WhatsApp" : "SMS"})</option>
+                <option value="sms">SMS</option>
+                <option value="whatsapp">WhatsApp</option>
+              </select>
+            </div>
             <label className="flex items-center gap-2 text-sm">
               <input
                 type="checkbox"
@@ -432,7 +453,16 @@ export default function AdminMembersPage() {
                     {member.isActive ? "Active" : "Pending"}
                   </span>
                 </div>
-                <p className="text-sm text-muted-foreground">{member.phone}</p>
+                <div className="flex items-center gap-1.5">
+                  <p className="text-sm text-muted-foreground">{member.phone}</p>
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                    (member.preferredChannel || defaultChannel) === "whatsapp"
+                      ? "bg-green-500/15 text-green-400"
+                      : "bg-blue-500/15 text-blue-400"
+                  }`}>
+                    {(member.preferredChannel || defaultChannel) === "whatsapp" ? "WhatsApp" : "SMS"}
+                  </span>
+                </div>
                 {member.homeAddress && (
                   <p className="text-xs text-muted-foreground truncate max-w-[200px]">
                     {member.homeAddress}

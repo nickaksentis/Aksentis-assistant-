@@ -22,6 +22,7 @@ export async function GET() {
       homeLat: familyMembers.homeLat,
       homeLng: familyMembers.homeLng,
       timezone: familyMembers.timezone,
+      preferredChannel: familyMembers.preferredChannel,
       createdAt: familyMembers.createdAt,
     })
     .from(familyMembers);
