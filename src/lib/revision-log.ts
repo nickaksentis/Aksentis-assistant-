@@ -1,4 +1,4 @@
-export const CURRENT_VERSION = "1.3.2";
+export const CURRENT_VERSION = "1.3.3";
 
 export const REVISION_LOG = [
   {
@@ -83,6 +83,15 @@ export const REVISION_LOG = [
       "Location search uses stored coordinates for reliable bias",
       "Display geocoded coordinates below home address in admin members page",
       "Remove in-memory geocode cache in favor of persisted data",
+    ],
+  },
+  {
+    version: "1.3.3",
+    date: "2026-04-07",
+    changes: [
+      "Migration status indicator: red card when migrations needed, blue when up to date",
+      "Schema version tracking in site_settings after each migration run",
+      "GET /api/migrate endpoint to check if migrations are needed",
     ],
   },
 ];

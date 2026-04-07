@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,15 +15,24 @@ import {
   XCircle,
   Settings,
   MapPin,
+  AlertCircle,
 } from "lucide-react";
 import { CURRENT_VERSION } from "@/lib/revision-log";
 
 export default function AdminPage() {
   const [migrating, setMigrating] = useState(false);
+  const [migrationsNeeded, setMigrationsNeeded] = useState(false);
   const [migrateResult, setMigrateResult] = useState<{
     ok: boolean;
     msg: string;
   } | null>(null);
+
+  useEffect(() => {
+    fetch("/api/migrate")
+      .then((res) => res.json())
+      .then((data) => setMigrationsNeeded(data.needed === true))
+      .catch(() => setMigrationsNeeded(true));
+  }, []);
 
   async function runMigrations() {
     setMigrating(true);
@@ -36,6 +45,7 @@ export default function AdminPage() {
           ok: true,
           msg: `Done — ${data.results?.length || 0} migrations checked.`,
         });
+        setMigrationsNeeded(false);
       } else {
         setMigrateResult({ ok: false, msg: data.error || "Migration failed" });
       }
@@ -150,19 +160,33 @@ export default function AdminPage() {
         <button
           onClick={runMigrations}
           disabled={migrating}
-          className="w-full flex items-center gap-4 rounded-xl border bg-card p-5 shadow-sm hover:shadow-md transition-all text-left"
+          className={`w-full flex items-center gap-4 rounded-xl border p-5 shadow-sm hover:shadow-md transition-all text-left ${
+            migrationsNeeded
+              ? "bg-red-500/10 border-red-500/30"
+              : "bg-card"
+          }`}
         >
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+          <div
+            className={`flex h-10 w-10 items-center justify-center rounded-full ${
+              migrationsNeeded ? "bg-red-500/15" : "bg-primary/10"
+            }`}
+          >
             {migrating ? (
-              <Loader2 className="h-5 w-5 text-primary animate-spin" />
+              <Loader2 className={`h-5 w-5 animate-spin ${migrationsNeeded ? "text-red-400" : "text-primary"}`} />
+            ) : migrationsNeeded ? (
+              <AlertCircle className="h-5 w-5 text-red-400" />
             ) : (
               <Database className="h-5 w-5 text-primary" />
             )}
           </div>
           <div className="flex-1 min-w-0">
-            <h2 className="font-semibold">Run Migrations</h2>
-            <p className="text-sm text-muted-foreground">
-              Update database tables after a new deploy
+            <h2 className="font-semibold">
+              {migrationsNeeded ? "Migrations Needed" : "Run Migrations"}
+            </h2>
+            <p className={`text-sm ${migrationsNeeded ? "text-red-400/80" : "text-muted-foreground"}`}>
+              {migrationsNeeded
+                ? "Database update required for v" + CURRENT_VERSION
+                : "Database is up to date"}
             </p>
             {migrateResult && (
               <div

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@libsql/client";
+import { CURRENT_VERSION } from "@/lib/revision-log";
 
 // This endpoint runs database migrations automatically.
 // Called during Vercel build or manually.
@@ -28,6 +29,32 @@ const alterMigrations = [
   `ALTER TABLE family_members ADD COLUMN home_lat TEXT`,
   `ALTER TABLE family_members ADD COLUMN home_lng TEXT`,
 ];
+
+// Check if migrations are needed (compare stored schema version to app version)
+export async function GET() {
+  const url = process.env.DATABASE_URL;
+  const authToken = process.env.DATABASE_AUTH_TOKEN;
+
+  if (!url) {
+    return NextResponse.json({ needed: true, schemaVersion: null });
+  }
+
+  try {
+    const client = createClient({ url, authToken });
+    const result = await client.execute(
+      `SELECT value FROM site_settings WHERE key = 'schemaVersion'`
+    );
+    const schemaVersion = result.rows[0]?.value as string | undefined;
+    return NextResponse.json({
+      needed: schemaVersion !== CURRENT_VERSION,
+      schemaVersion: schemaVersion || null,
+      appVersion: CURRENT_VERSION,
+    });
+  } catch {
+    // Table might not exist yet — migrations definitely needed
+    return NextResponse.json({ needed: true, schemaVersion: null, appVersion: CURRENT_VERSION });
+  }
+}
 
 export async function POST() {
   const url = process.env.DATABASE_URL;
@@ -85,6 +112,17 @@ export async function POST() {
       const msg = err instanceof Error ? err.message : String(err);
       results.push(`- Seed skipped: ${msg}`);
     }
+  }
+
+  // Update schema version to current app version
+  try {
+    await client.execute(
+      `INSERT OR REPLACE INTO site_settings (key, value) VALUES ('schemaVersion', '${CURRENT_VERSION}')`
+    );
+    results.push(`✓ Schema version set to ${CURRENT_VERSION}`);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    results.push(`- Schema version update skipped: ${msg}`);
   }
 
   return NextResponse.json({ success: true, results });
