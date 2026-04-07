@@ -1,4 +1,4 @@
-export const CURRENT_VERSION = "1.3.4";
+export const CURRENT_VERSION = "1.3.5";
 
 export const REVISION_LOG = [
   {
@@ -102,6 +102,16 @@ export const REVISION_LOG = [
       "Editable lat/lng fields on member profile for manual override",
       "Geocode runs automatically on save when lat/lng not provided",
       "Lat/lng clear when new address selected to trigger fresh geocode",
+    ],
+  },
+  {
+    version: "1.3.5",
+    date: "2026-04-07",
+    changes: [
+      "Geocode test endpoint for debugging Google API responses",
+      "Geocode button on member form to test and populate coordinates",
+      "Debug logging for all geocode calls (visible in server logs)",
+      "Geocode status feedback after saving member profile",
     ],
   },
 ];

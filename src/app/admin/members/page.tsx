@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Plus, Pencil, Trash2, X, Check, Send, Loader2 } from "lucide-react";
+import { ArrowLeft, Plus, Pencil, Trash2, X, Check, Send, Loader2, MapPin } from "lucide-react";
 import { LocationSearch } from "@/components/location-search";
 
 interface Member {
@@ -59,6 +59,9 @@ export default function AdminMembersPage() {
   const [error, setError] = useState("");
   const [testingSmsFor, setTestingSmsFor] = useState<number | null>(null);
   const [smsResult, setSmsResult] = useState<{ id: number; msg: string; ok: boolean } | null>(null);
+  const [geocoding, setGeocoding] = useState(false);
+  const [geocodeResult, setGeocodeResult] = useState<{ msg: string; ok: boolean } | null>(null);
+  const [saveGeoStatus, setSaveGeoStatus] = useState<string | null>(null);
 
   async function loadMembers() {
     const res = await fetch("/api/admin/members");
@@ -81,36 +84,76 @@ export default function AdminMembersPage() {
       .catch(() => {});
   }, []);
 
+  async function testGeocode() {
+    if (!form.homeAddress.trim()) {
+      setGeocodeResult({ msg: "Enter a home address first", ok: false });
+      return;
+    }
+    setGeocoding(true);
+    setGeocodeResult(null);
+    try {
+      const res = await fetch("/api/admin/geocode-test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ address: form.homeAddress }),
+      });
+      const data = await res.json();
+      if (data.status === "OK" && data.lat && data.lng) {
+        setForm((f) => ({ ...f, homeLat: data.lat, homeLng: data.lng }));
+        setGeocodeResult({
+          msg: `Found: ${data.formattedAddress || `${data.lat}, ${data.lng}`}`,
+          ok: true,
+        });
+      } else {
+        setGeocodeResult({
+          msg: `${data.status}: ${data.error || "No results"}`,
+          ok: false,
+        });
+      }
+    } catch {
+      setGeocodeResult({ msg: "Network error", ok: false });
+    }
+    setGeocoding(false);
+  }
+
   async function handleAdd() {
     setError("");
+    setSaveGeoStatus(null);
     const res = await fetch("/api/members", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(form),
     });
+    const data = await res.json();
     if (res.ok) {
+      if (data.geocodeStatus && data.geocodeStatus !== "skipped" && data.geocodeStatus !== "manual") {
+        setSaveGeoStatus(data.geocodeStatus);
+      }
       setShowAdd(false);
       setForm({ name: "", phone: "", pin: "", isAdmin: false, homeAddress: "", homePlaceId: "", homeLat: "", homeLng: "", timezone: defaultTz });
       loadMembers();
     } else {
-      const data = await res.json();
       setError(data.error || "Failed to add member");
     }
   }
 
   async function handleUpdate(id: number) {
     setError("");
+    setSaveGeoStatus(null);
     const res = await fetch("/api/members", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id, ...form }),
     });
+    const data = await res.json();
     if (res.ok) {
+      if (data.geocodeStatus && data.geocodeStatus !== "skipped" && data.geocodeStatus !== "manual") {
+        setSaveGeoStatus(data.geocodeStatus);
+      }
       setEditingId(null);
       setForm({ name: "", phone: "", pin: "", isAdmin: false, homeAddress: "", homePlaceId: "", homeLat: "", homeLng: "", timezone: defaultTz });
       loadMembers();
     } else {
-      const data = await res.json();
       setError(data.error || "Failed to update member");
     }
   }
@@ -193,6 +236,11 @@ export default function AdminMembersPage() {
         {error && (
           <p className="text-sm text-destructive text-center">{error}</p>
         )}
+        {saveGeoStatus && (
+          <p className={`text-xs text-center ${saveGeoStatus === "success" ? "text-green-400" : "text-yellow-400"}`}>
+            Geocode: {saveGeoStatus}
+          </p>
+        )}
 
         {(showAdd || editingId !== null) && (
           <div className="rounded-xl border bg-card p-4 space-y-3">
@@ -257,29 +305,48 @@ export default function AdminMembersPage() {
                 }
               />
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label>Latitude</Label>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>Coordinates</Label>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="h-7 gap-1 text-xs"
+                  disabled={geocoding || !form.homeAddress.trim()}
+                  onClick={testGeocode}
+                >
+                  {geocoding ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <MapPin className="h-3 w-3" />
+                  )}
+                  Geocode
+                </Button>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
                 <Input
                   value={form.homeLat}
                   onChange={(e) =>
                     setForm((f) => ({ ...f, homeLat: e.target.value }))
                   }
-                  placeholder="e.g. 27.9659"
+                  placeholder="Latitude"
                   className="text-xs"
                 />
-              </div>
-              <div className="space-y-2">
-                <Label>Longitude</Label>
                 <Input
                   value={form.homeLng}
                   onChange={(e) =>
                     setForm((f) => ({ ...f, homeLng: e.target.value }))
                   }
-                  placeholder="e.g. -82.8001"
+                  placeholder="Longitude"
                   className="text-xs"
                 />
               </div>
+              {geocodeResult && (
+                <p className={`text-xs ${geocodeResult.ok ? "text-green-400" : "text-red-400"}`}>
+                  {geocodeResult.msg}
+                </p>
+              )}
             </div>
             <div className="space-y-2">
               <Label>Time Zone</Label>

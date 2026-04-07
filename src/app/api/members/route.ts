@@ -40,24 +40,37 @@ export async function POST(req: NextRequest) {
   // Use manually provided lat/lng, or geocode the home address
   let homeLat: string | null = manualLat?.trim() || null;
   let homeLng: string | null = manualLng?.trim() || null;
+  let geocodeStatus = "skipped";
   if (!homeLat && !homeLng && homeAddress?.trim()) {
-    try {
-      const apiKey = process.env.GOOGLE_PLACES_API_KEY;
-      if (apiKey) {
-        const geoRes = await fetch(
-          `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(
-            homeAddress.trim()
-          )}&key=${apiKey}`
-        );
+    const apiKey = process.env.GOOGLE_PLACES_API_KEY;
+    if (!apiKey) {
+      console.log("[Geocode POST] No GOOGLE_PLACES_API_KEY env var set");
+      geocodeStatus = "no_api_key";
+    } else {
+      try {
+        const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(
+          homeAddress.trim()
+        )}&key=${apiKey}`;
+        console.log("[Geocode POST] Calling:", geocodeUrl.replace(apiKey, "KEY_REDACTED"));
+        const geoRes = await fetch(geocodeUrl);
         const geoData = await geoRes.json();
-        if (geoData.results?.[0]?.geometry?.location) {
+        console.log("[Geocode POST] Response status:", geoData.status, "error_message:", geoData.error_message || "none", "results count:", geoData.results?.length || 0);
+        if (geoData.status === "OK" && geoData.results?.[0]?.geometry?.location) {
           homeLat = String(geoData.results[0].geometry.location.lat);
           homeLng = String(geoData.results[0].geometry.location.lng);
+          geocodeStatus = "success";
+          console.log("[Geocode POST] Got coords:", homeLat, homeLng);
+        } else {
+          geocodeStatus = `google_${geoData.status || "UNKNOWN"}`;
         }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error("[Geocode POST] Fetch error:", msg);
+        geocodeStatus = `error: ${msg}`;
       }
-    } catch {
-      // Best effort — save without coords
     }
+  } else if (homeLat && homeLng) {
+    geocodeStatus = "manual";
   }
 
   const [member] = await db
@@ -92,7 +105,7 @@ export async function POST(req: NextRequest) {
     // SMS is best-effort during member creation
   }
 
-  return NextResponse.json(member, { status: 201 });
+  return NextResponse.json({ ...member, geocodeStatus }, { status: 201 });
 }
 
 // Admin: update a family member
@@ -127,31 +140,42 @@ export async function PUT(req: NextRequest) {
   if (timezone !== undefined) updates.timezone = timezone || null;
 
   // Use manually provided lat/lng if present
+  let geocodeStatus = "skipped";
   if (manualLat?.trim() || manualLng?.trim()) {
     updates.homeLat = manualLat?.trim() || null;
     updates.homeLng = manualLng?.trim() || null;
+    geocodeStatus = "manual";
   } else if (homeAddress !== undefined) {
     // Geocode home address when it changes and no manual coords
     if (homeAddress?.trim()) {
-      try {
-        const apiKey = process.env.GOOGLE_PLACES_API_KEY;
-        if (apiKey) {
-          const geoRes = await fetch(
-            `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(
-              homeAddress.trim()
-            )}&key=${apiKey}`
-          );
+      const apiKey = process.env.GOOGLE_PLACES_API_KEY;
+      if (!apiKey) {
+        console.log("[Geocode PUT] No GOOGLE_PLACES_API_KEY env var set");
+        geocodeStatus = "no_api_key";
+      } else {
+        try {
+          const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(
+            homeAddress.trim()
+          )}&key=${apiKey}`;
+          console.log("[Geocode PUT] Calling:", geocodeUrl.replace(apiKey, "KEY_REDACTED"));
+          const geoRes = await fetch(geocodeUrl);
           const geoData = await geoRes.json();
-          if (geoData.results?.[0]?.geometry?.location) {
+          console.log("[Geocode PUT] Response status:", geoData.status, "error_message:", geoData.error_message || "none", "results count:", geoData.results?.length || 0);
+          if (geoData.status === "OK" && geoData.results?.[0]?.geometry?.location) {
             updates.homeLat = String(geoData.results[0].geometry.location.lat);
             updates.homeLng = String(geoData.results[0].geometry.location.lng);
+            geocodeStatus = "success";
+            console.log("[Geocode PUT] Got coords:", updates.homeLat, updates.homeLng);
           } else {
             updates.homeLat = null;
             updates.homeLng = null;
+            geocodeStatus = `google_${geoData.status || "UNKNOWN"}`;
           }
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          console.error("[Geocode PUT] Fetch error:", msg);
+          geocodeStatus = `error: ${msg}`;
         }
-      } catch {
-        // Best effort — keep existing coords
       }
     } else {
       updates.homeLat = null;
@@ -165,7 +189,7 @@ export async function PUT(req: NextRequest) {
     .where(eq(familyMembers.id, id))
     .returning();
 
-  return NextResponse.json(updated);
+  return NextResponse.json({ ...updated, geocodeStatus });
 }
 
 // Admin: delete a family member
