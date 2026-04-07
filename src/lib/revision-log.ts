@@ -1,4 +1,4 @@
-export const CURRENT_VERSION = "1.3.0";
+export const CURRENT_VERSION = "1.3.1";
 
 export const REVISION_LOG = [
   {
@@ -65,6 +65,14 @@ export const REVISION_LOG = [
       "Timezone-aware SMS reminders: event times displayed in each recipient's local timezone",
       "Edit event page converts UTC dates back to user's local timezone",
       "Site settings table with seed data via auto-migration",
+    ],
+  },
+  {
+    version: "1.3.1",
+    date: "2026-04-07",
+    changes: [
+      "Location search results biased near user's home address",
+      "Geocode caching to reduce API calls",
     ],
   },
 ];
