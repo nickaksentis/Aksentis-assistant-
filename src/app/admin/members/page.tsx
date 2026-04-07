@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ArrowLeft, Plus, Pencil, Trash2, X, Check, Send, Loader2 } from "lucide-react";
+import { LocationSearch } from "@/components/location-search";
 
 interface Member {
   id: number;
@@ -50,6 +51,9 @@ export default function AdminMembersPage() {
     pin: "",
     isAdmin: false,
     homeAddress: "",
+    homePlaceId: "",
+    homeLat: "",
+    homeLng: "",
     timezone: "America/New_York",
   });
   const [error, setError] = useState("");
@@ -86,7 +90,7 @@ export default function AdminMembersPage() {
     });
     if (res.ok) {
       setShowAdd(false);
-      setForm({ name: "", phone: "", pin: "", isAdmin: false, homeAddress: "", timezone: defaultTz });
+      setForm({ name: "", phone: "", pin: "", isAdmin: false, homeAddress: "", homePlaceId: "", homeLat: "", homeLng: "", timezone: defaultTz });
       loadMembers();
     } else {
       const data = await res.json();
@@ -103,7 +107,7 @@ export default function AdminMembersPage() {
     });
     if (res.ok) {
       setEditingId(null);
-      setForm({ name: "", phone: "", pin: "", isAdmin: false, homeAddress: "", timezone: defaultTz });
+      setForm({ name: "", phone: "", pin: "", isAdmin: false, homeAddress: "", homePlaceId: "", homeLat: "", homeLng: "", timezone: defaultTz });
       loadMembers();
     } else {
       const data = await res.json();
@@ -150,6 +154,9 @@ export default function AdminMembersPage() {
       pin: "",
       isAdmin: member.isAdmin,
       homeAddress: member.homeAddress || "",
+      homePlaceId: "",
+      homeLat: member.homeLat || "",
+      homeLng: member.homeLng || "",
       timezone: member.timezone || defaultTz,
     });
     setShowAdd(false);
@@ -173,7 +180,7 @@ export default function AdminMembersPage() {
             onClick={() => {
               setShowAdd(true);
               setEditingId(null);
-              setForm({ name: "", phone: "", pin: "", isAdmin: false, homeAddress: "", timezone: defaultTz });
+              setForm({ name: "", phone: "", pin: "", isAdmin: false, homeAddress: "", homePlaceId: "", homeLat: "", homeLng: "", timezone: defaultTz });
             }}
           >
             <Plus className="h-4 w-4" />
@@ -228,13 +235,51 @@ export default function AdminMembersPage() {
             </div>
             <div className="space-y-2">
               <Label>Home Address</Label>
-              <Input
+              <LocationSearch
                 value={form.homeAddress}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, homeAddress: e.target.value }))
+                onChange={(data) =>
+                  setForm((f) => ({
+                    ...f,
+                    homeAddress: data.location,
+                    homePlaceId: data.placeId || "",
+                    homeLat: "",
+                    homeLng: "",
+                  }))
                 }
-                placeholder="123 Main St, City, State"
+                onClear={() =>
+                  setForm((f) => ({
+                    ...f,
+                    homeAddress: "",
+                    homePlaceId: "",
+                    homeLat: "",
+                    homeLng: "",
+                  }))
+                }
               />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Latitude</Label>
+                <Input
+                  value={form.homeLat}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, homeLat: e.target.value }))
+                  }
+                  placeholder="e.g. 27.9659"
+                  className="text-xs"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Longitude</Label>
+                <Input
+                  value={form.homeLng}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, homeLng: e.target.value }))
+                  }
+                  placeholder="e.g. -82.8001"
+                  className="text-xs"
+                />
+              </div>
             </div>
             <div className="space-y-2">
               <Label>Time Zone</Label>

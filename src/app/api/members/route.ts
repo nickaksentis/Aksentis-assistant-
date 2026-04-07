@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const { name, phone, pin, isAdmin, homeAddress, homePlaceId, timezone } =
+  const { name, phone, pin, isAdmin, homeAddress, homePlaceId, homeLat: manualLat, homeLng: manualLng, timezone } =
     await req.json();
   if (!name?.trim() || !phone?.trim() || !pin?.trim()) {
     return NextResponse.json(
@@ -37,10 +37,10 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Geocode home address to get lat/lng
-  let homeLat: string | null = null;
-  let homeLng: string | null = null;
-  if (homeAddress?.trim()) {
+  // Use manually provided lat/lng, or geocode the home address
+  let homeLat: string | null = manualLat?.trim() || null;
+  let homeLng: string | null = manualLng?.trim() || null;
+  if (!homeLat && !homeLng && homeAddress?.trim()) {
     try {
       const apiKey = process.env.GOOGLE_PLACES_API_KEY;
       if (apiKey) {
@@ -102,7 +102,7 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const { id, name, phone, pin, isAdmin, homeAddress, homePlaceId, timezone } =
+  const { id, name, phone, pin, isAdmin, homeAddress, homePlaceId, homeLat: manualLat, homeLng: manualLng, timezone } =
     await req.json();
   if (!id) {
     return NextResponse.json({ error: "ID is required" }, { status: 400 });
@@ -126,8 +126,12 @@ export async function PUT(req: NextRequest) {
   if (homePlaceId !== undefined) updates.homePlaceId = homePlaceId || null;
   if (timezone !== undefined) updates.timezone = timezone || null;
 
-  // Geocode home address when it changes
-  if (homeAddress !== undefined) {
+  // Use manually provided lat/lng if present
+  if (manualLat?.trim() || manualLng?.trim()) {
+    updates.homeLat = manualLat?.trim() || null;
+    updates.homeLng = manualLng?.trim() || null;
+  } else if (homeAddress !== undefined) {
+    // Geocode home address when it changes and no manual coords
     if (homeAddress?.trim()) {
       try {
         const apiKey = process.env.GOOGLE_PLACES_API_KEY;

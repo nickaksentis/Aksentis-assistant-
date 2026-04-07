@@ -1,4 +1,4 @@
-export const CURRENT_VERSION = "1.3.3";
+export const CURRENT_VERSION = "1.3.4";
 
 export const REVISION_LOG = [
   {
@@ -92,6 +92,16 @@ export const REVISION_LOG = [
       "Migration status indicator: red card when migrations needed, blue when up to date",
       "Schema version tracking in site_settings after each migration run",
       "GET /api/migrate endpoint to check if migrations are needed",
+    ],
+  },
+  {
+    version: "1.3.4",
+    date: "2026-04-07",
+    changes: [
+      "Home address field uses Google Places search (same as event location)",
+      "Editable lat/lng fields on member profile for manual override",
+      "Geocode runs automatically on save when lat/lng not provided",
+      "Lat/lng clear when new address selected to trigger fresh geocode",
     ],
   },
 ];
