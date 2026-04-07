@@ -1,12 +1,59 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { savedLocations } from "@/lib/db/schema";
-import { like } from "drizzle-orm";
+import { savedLocations, familyMembers } from "@/lib/db/schema";
+import { like, eq } from "drizzle-orm";
+import { getSession } from "@/lib/auth";
+
+// Simple in-memory cache for geocoded home addresses (survives across requests in same serverless instance)
+const geocodeCache = new Map<string, { lat: string; lng: string } | null>();
 
 export async function GET(req: NextRequest) {
   const q = req.nextUrl.searchParams.get("q");
   if (!q) {
     return NextResponse.json({ predictions: [] });
+  }
+
+  // Get user's home location for biasing Google results
+  let homeLat: string | null = null;
+  let homeLng: string | null = null;
+  try {
+    const session = await getSession();
+    if (session.isLoggedIn) {
+      const member = await db.query.familyMembers.findFirst({
+        where: eq(familyMembers.id, session.memberId),
+      });
+      if (member?.homeAddress) {
+        const cached = geocodeCache.get(member.homeAddress);
+        if (cached !== undefined) {
+          if (cached) {
+            homeLat = cached.lat;
+            homeLng = cached.lng;
+          }
+        } else {
+          const apiKey = process.env.GOOGLE_PLACES_API_KEY;
+          if (apiKey) {
+            const geoRes = await fetch(
+              `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(
+                member.homeAddress
+              )}&key=${apiKey}`
+            );
+            const geoData = await geoRes.json();
+            if (geoData.results?.[0]?.geometry?.location) {
+              homeLat = String(geoData.results[0].geometry.location.lat);
+              homeLng = String(geoData.results[0].geometry.location.lng);
+              geocodeCache.set(member.homeAddress, {
+                lat: homeLat,
+                lng: homeLng,
+              });
+            } else {
+              geocodeCache.set(member.homeAddress, null);
+            }
+          }
+        }
+      }
+    }
+  } catch {
+    // Best effort — proceed without bias
   }
 
   // Search saved locations first
@@ -29,25 +76,31 @@ export async function GET(req: NextRequest) {
       placeId: loc.placeId || `saved-${loc.id}`,
       description: loc.address,
       mainText: loc.name,
-      secondaryText: loc.locationType !== "other" ? loc.locationType : loc.address,
+      secondaryText:
+        loc.locationType !== "other" ? loc.locationType : loc.address,
       isSaved: true,
     }));
   } catch {
     // Saved locations query is best-effort
   }
 
-  // Then search Google Places
+  // Then search Google Places with location bias
   const apiKey = process.env.GOOGLE_PLACES_API_KEY;
   if (!apiKey) {
     return NextResponse.json({ predictions: saved });
   }
 
   try {
-    const res = await fetch(
-      `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(
-        q
-      )}&key=${apiKey}&types=establishment|geocode`
-    );
+    let url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(
+      q
+    )}&key=${apiKey}&types=establishment|geocode`;
+
+    // Bias results near user's home address
+    if (homeLat && homeLng) {
+      url += `&location=${homeLat},${homeLng}&radius=80000`;
+    }
+
+    const res = await fetch(url);
     const data = await res.json();
 
     const googlePredictions = (data.predictions || []).map(
