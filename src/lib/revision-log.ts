@@ -1,4 +1,4 @@
-export const CURRENT_VERSION = "1.3.1";
+export const CURRENT_VERSION = "1.3.2";
 
 export const REVISION_LOG = [
   {
@@ -73,6 +73,16 @@ export const REVISION_LOG = [
     changes: [
       "Location search results biased near user's home address",
       "Geocode caching to reduce API calls",
+    ],
+  },
+  {
+    version: "1.3.2",
+    date: "2026-04-07",
+    changes: [
+      "Geocode home address at save time and store lat/lng in database",
+      "Location search uses stored coordinates for reliable bias",
+      "Display geocoded coordinates below home address in admin members page",
+      "Remove in-memory geocode cache in favor of persisted data",
     ],
   },
 ];

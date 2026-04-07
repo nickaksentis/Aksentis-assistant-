@@ -19,6 +19,9 @@ export async function GET() {
       isActive: familyMembers.isActive,
       homeAddress: familyMembers.homeAddress,
       homePlaceId: familyMembers.homePlaceId,
+      homeLat: familyMembers.homeLat,
+      homeLng: familyMembers.homeLng,
+      timezone: familyMembers.timezone,
       createdAt: familyMembers.createdAt,
     })
     .from(familyMembers);

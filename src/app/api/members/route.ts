@@ -37,6 +37,29 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // Geocode home address to get lat/lng
+  let homeLat: string | null = null;
+  let homeLng: string | null = null;
+  if (homeAddress?.trim()) {
+    try {
+      const apiKey = process.env.GOOGLE_PLACES_API_KEY;
+      if (apiKey) {
+        const geoRes = await fetch(
+          `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(
+            homeAddress.trim()
+          )}&key=${apiKey}`
+        );
+        const geoData = await geoRes.json();
+        if (geoData.results?.[0]?.geometry?.location) {
+          homeLat = String(geoData.results[0].geometry.location.lat);
+          homeLng = String(geoData.results[0].geometry.location.lng);
+        }
+      }
+    } catch {
+      // Best effort — save without coords
+    }
+  }
+
   const [member] = await db
     .insert(familyMembers)
     .values({
@@ -48,6 +71,8 @@ export async function POST(req: NextRequest) {
       timezone: timezone || null,
       homeAddress: homeAddress?.trim() || null,
       homePlaceId: homePlaceId || null,
+      homeLat,
+      homeLng,
     })
     .returning();
 
@@ -100,6 +125,35 @@ export async function PUT(req: NextRequest) {
     updates.homeAddress = homeAddress?.trim() || null;
   if (homePlaceId !== undefined) updates.homePlaceId = homePlaceId || null;
   if (timezone !== undefined) updates.timezone = timezone || null;
+
+  // Geocode home address when it changes
+  if (homeAddress !== undefined) {
+    if (homeAddress?.trim()) {
+      try {
+        const apiKey = process.env.GOOGLE_PLACES_API_KEY;
+        if (apiKey) {
+          const geoRes = await fetch(
+            `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(
+              homeAddress.trim()
+            )}&key=${apiKey}`
+          );
+          const geoData = await geoRes.json();
+          if (geoData.results?.[0]?.geometry?.location) {
+            updates.homeLat = String(geoData.results[0].geometry.location.lat);
+            updates.homeLng = String(geoData.results[0].geometry.location.lng);
+          } else {
+            updates.homeLat = null;
+            updates.homeLng = null;
+          }
+        }
+      } catch {
+        // Best effort — keep existing coords
+      }
+    } else {
+      updates.homeLat = null;
+      updates.homeLng = null;
+    }
+  }
 
   const [updated] = await db
     .update(familyMembers)

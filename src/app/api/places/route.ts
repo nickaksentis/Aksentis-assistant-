@@ -4,16 +4,13 @@ import { savedLocations, familyMembers } from "@/lib/db/schema";
 import { like, eq } from "drizzle-orm";
 import { getSession } from "@/lib/auth";
 
-// Simple in-memory cache for geocoded home addresses (survives across requests in same serverless instance)
-const geocodeCache = new Map<string, { lat: string; lng: string } | null>();
-
 export async function GET(req: NextRequest) {
   const q = req.nextUrl.searchParams.get("q");
   if (!q) {
     return NextResponse.json({ predictions: [] });
   }
 
-  // Get user's home location for biasing Google results
+  // Get user's stored home lat/lng for biasing Google results
   let homeLat: string | null = null;
   let homeLng: string | null = null;
   try {
@@ -22,34 +19,9 @@ export async function GET(req: NextRequest) {
       const member = await db.query.familyMembers.findFirst({
         where: eq(familyMembers.id, session.memberId),
       });
-      if (member?.homeAddress) {
-        const cached = geocodeCache.get(member.homeAddress);
-        if (cached !== undefined) {
-          if (cached) {
-            homeLat = cached.lat;
-            homeLng = cached.lng;
-          }
-        } else {
-          const apiKey = process.env.GOOGLE_PLACES_API_KEY;
-          if (apiKey) {
-            const geoRes = await fetch(
-              `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(
-                member.homeAddress
-              )}&key=${apiKey}`
-            );
-            const geoData = await geoRes.json();
-            if (geoData.results?.[0]?.geometry?.location) {
-              homeLat = String(geoData.results[0].geometry.location.lat);
-              homeLng = String(geoData.results[0].geometry.location.lng);
-              geocodeCache.set(member.homeAddress, {
-                lat: homeLat,
-                lng: homeLng,
-              });
-            } else {
-              geocodeCache.set(member.homeAddress, null);
-            }
-          }
-        }
+      if (member?.homeLat && member?.homeLng) {
+        homeLat = member.homeLat;
+        homeLng = member.homeLng;
       }
     }
   } catch {

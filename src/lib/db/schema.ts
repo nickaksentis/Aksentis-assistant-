@@ -10,6 +10,8 @@ export const familyMembers = sqliteTable("family_members", {
   timezone: text("timezone"),
   homeAddress: text("home_address"),
   homePlaceId: text("home_place_id"),
+  homeLat: text("home_lat"),
+  homeLng: text("home_lng"),
   createdAt: text("created_at")
     .notNull()
     .$defaultFn(() => new Date().toISOString()),

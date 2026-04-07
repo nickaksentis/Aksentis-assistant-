@@ -15,6 +15,8 @@ interface Member {
   isAdmin: boolean;
   isActive: boolean;
   homeAddress: string | null;
+  homeLat: string | null;
+  homeLng: string | null;
   timezone: string | null;
 }
 
@@ -322,6 +324,11 @@ export default function AdminMembersPage() {
                 {member.homeAddress && (
                   <p className="text-xs text-muted-foreground truncate max-w-[200px]">
                     {member.homeAddress}
+                  </p>
+                )}
+                {member.homeLat && member.homeLng && (
+                  <p className="text-[10px] text-muted-foreground/60">
+                    {member.homeLat}, {member.homeLng}
                   </p>
                 )}
               </div>

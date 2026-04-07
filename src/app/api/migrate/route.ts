@@ -24,6 +24,9 @@ const alterMigrations = [
   `ALTER TABLE family_members ADD COLUMN is_active INTEGER NOT NULL DEFAULT 1`,
   // v1.3.0
   `ALTER TABLE family_members ADD COLUMN timezone TEXT`,
+  // v1.3.2
+  `ALTER TABLE family_members ADD COLUMN home_lat TEXT`,
+  `ALTER TABLE family_members ADD COLUMN home_lng TEXT`,
 ];
 
 export async function POST() {
