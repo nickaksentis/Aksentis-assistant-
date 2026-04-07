@@ -29,6 +29,7 @@ export async function GET() {
           member: true,
         },
       },
+      reminders: true,
     },
   });
 

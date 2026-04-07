@@ -1,4 +1,4 @@
-export const CURRENT_VERSION = "1.4.1";
+export const CURRENT_VERSION = "1.4.2";
 
 export const REVISION_LOG = [
   {
@@ -138,6 +138,18 @@ export const REVISION_LOG = [
       "Channel badge (SMS/WhatsApp) shown on usage log entries",
       "Full message content displayed in logs (removed 2-line truncation)",
       "Tab renamed from 'SMS Logs' to 'Message Logs'",
+    ],
+  },
+  {
+    version: "1.4.2",
+    date: "2026-04-07",
+    changes: [
+      "Edit event page shows active reminder presets highlighted (reverse-engineered from stored reminders)",
+      "Events API returns reminders with event data",
+      "Reminder Logs tab on admin Usage & Logs page with scheduled/sent/failed status",
+      "Reminder cards show event name, offset label, fire time, recipients, and channel",
+      "Filter pills for All, Scheduled, and Sent reminders",
+      "Summary counts for scheduled, sent, and failed reminders",
     ],
   },
 ];

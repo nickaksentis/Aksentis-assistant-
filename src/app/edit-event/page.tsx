@@ -143,6 +143,22 @@ function EditEventContent() {
         setDatePart(dp);
         setTimePart(snappedTime);
 
+        // Reverse-engineer active reminder presets from stored scheduledAt values
+        const activePresets: string[] = [];
+        if (event.reminders?.length && event.date) {
+          const eventTime = new Date(event.date).getTime();
+          for (const reminder of event.reminders) {
+            const reminderTime = new Date(reminder.scheduledAt).getTime();
+            const diffMinutes = Math.round((eventTime - reminderTime) / (60 * 1000));
+            const matchedPreset = REMINDER_PRESETS.find(
+              (p) => Math.abs(p.minutes - diffMinutes) < 2
+            );
+            if (matchedPreset) {
+              activePresets.push(matchedPreset.value);
+            }
+          }
+        }
+
         setForm({
           name: event.name,
           date: dp && snappedTime ? `${dp}T${snappedTime}` : dateLocal,
@@ -152,7 +168,7 @@ function EditEventContent() {
           longitude: event.longitude || "",
           description: event.description || "",
           attendees: event.attendees?.map((a) => a.member.id) || [],
-          reminderPresets: [],
+          reminderPresets: activePresets,
           reminderRecipients: event.reminders?.[0]?.sendTo || "creator",
         });
         setLoading(false);
@@ -314,10 +330,7 @@ function EditEventContent() {
           </div>
 
           <div className="space-y-3">
-            <Label>Update Reminders</Label>
-            <p className="text-xs text-muted-foreground">
-              Select new reminder times (replaces existing reminders)
-            </p>
+            <Label>Reminders</Label>
             <div className="flex flex-wrap gap-2">
               {REMINDER_PRESETS.map((preset) => (
                 <button

@@ -11,6 +11,7 @@ import {
   Loader2,
   Pencil,
   PlusCircle,
+  Clock,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { useRouter } from "next/navigation";
@@ -47,9 +48,29 @@ interface ActivityEntry {
   createdAt: string;
 }
 
+interface ReminderEntry {
+  id: number;
+  eventId: number;
+  eventName: string;
+  eventDate: string;
+  scheduledAt: string;
+  sendTo: string;
+  sendToNames: string;
+  status: string;
+  sentAt: string | null;
+  messageBody: string | null;
+  channel: string | null;
+}
+
+interface ReminderCounts {
+  scheduled: number;
+  sent: number;
+  failed: number;
+}
+
 export default function AdminUsagePage() {
   const router = useRouter();
-  const [tab, setTab] = useState<"sms" | "activity">("sms");
+  const [tab, setTab] = useState<"sms" | "activity" | "reminders">("sms");
   const [logs, setLogs] = useState<SmsLogEntry[]>([]);
   const [counts, setCounts] = useState<Counts>({
     total: 0,
@@ -59,8 +80,15 @@ export default function AdminUsagePage() {
     failed: 0,
   });
   const [activityLogs, setActivityLogs] = useState<ActivityEntry[]>([]);
+  const [reminderLogs, setReminderLogs] = useState<ReminderEntry[]>([]);
+  const [reminderCounts, setReminderCounts] = useState<ReminderCounts>({
+    scheduled: 0,
+    sent: 0,
+    failed: 0,
+  });
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>("all");
+  const [reminderFilter, setReminderFilter] = useState<string>("all");
 
   async function loadLogs(direction?: string) {
     setLoading(true);
@@ -90,13 +118,30 @@ export default function AdminUsagePage() {
     setLoading(false);
   }
 
+  async function loadReminders(statusFilter?: string) {
+    setLoading(true);
+    const params = new URLSearchParams();
+    if (statusFilter && statusFilter !== "all") {
+      params.set("status", statusFilter === "scheduled" ? "pending" : statusFilter);
+    }
+    const res = await fetch(`/api/admin/reminders?${params}`);
+    if (res.ok) {
+      const data = await res.json();
+      setReminderLogs(data.logs);
+      setReminderCounts(data.counts);
+    }
+    setLoading(false);
+  }
+
   useEffect(() => {
     if (tab === "sms") {
       loadLogs(filter);
-    } else {
+    } else if (tab === "activity") {
       loadActivity();
+    } else {
+      loadReminders(reminderFilter);
     }
-  }, [filter, tab]);
+  }, [filter, tab, reminderFilter]);
 
   function getStatusColor(status: string) {
     switch (status) {
@@ -179,11 +224,156 @@ export default function AdminUsagePage() {
                 : "bg-background text-foreground border-input hover:bg-accent"
             }`}
           >
-            Activity Log
+            Activity
+          </button>
+          <button
+            onClick={() => setTab("reminders")}
+            className={`flex-1 rounded-xl py-2.5 text-sm font-medium transition-colors border ${
+              tab === "reminders"
+                ? "bg-primary text-primary-foreground border-primary"
+                : "bg-background text-foreground border-input hover:bg-accent"
+            }`}
+          >
+            Reminders
           </button>
         </div>
 
-        {tab === "sms" ? (
+        {tab === "reminders" ? (
+          <>
+            {/* Summary Cards */}
+            <div className="grid grid-cols-3 gap-3">
+              <div className="rounded-xl border bg-card p-4 text-center">
+                <p className="text-2xl font-bold">{reminderCounts.scheduled}</p>
+                <p className="text-xs text-muted-foreground">Scheduled</p>
+              </div>
+              <div className="rounded-xl border bg-card p-4 text-center">
+                <p className="text-2xl font-bold">{reminderCounts.sent}</p>
+                <p className="text-xs text-muted-foreground">Sent</p>
+              </div>
+              <div className="rounded-xl border bg-card p-4 text-center">
+                <p className="text-2xl font-bold">{reminderCounts.failed}</p>
+                <p className="text-xs text-muted-foreground">Failed</p>
+              </div>
+            </div>
+
+            {/* Filters */}
+            <div className="flex flex-wrap gap-2">
+              {["all", "scheduled", "sent"].map((f) => (
+                <button
+                  key={f}
+                  onClick={() => setReminderFilter(f)}
+                  className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors border ${
+                    reminderFilter === f
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-background text-foreground border-input hover:bg-accent"
+                  }`}
+                >
+                  {f === "all" ? "All" : f === "scheduled" ? "Scheduled" : "Sent"}
+                </button>
+              ))}
+            </div>
+
+            {/* Reminder List */}
+            {loading ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : reminderLogs.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8">
+                No reminders found.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {reminderLogs.map((reminder) => {
+                  // Calculate human-readable offset
+                  let offsetLabel = "";
+                  if (reminder.eventDate && reminder.scheduledAt) {
+                    const diffMs =
+                      new Date(reminder.eventDate).getTime() -
+                      new Date(reminder.scheduledAt).getTime();
+                    const diffMin = Math.round(diffMs / (60 * 1000));
+                    if (diffMin >= 43200) offsetLabel = `${Math.round(diffMin / 43200)} month${Math.round(diffMin / 43200) > 1 ? "s" : ""} before`;
+                    else if (diffMin >= 10080) offsetLabel = `${Math.round(diffMin / 10080)} week${Math.round(diffMin / 10080) > 1 ? "s" : ""} before`;
+                    else if (diffMin >= 1440) offsetLabel = `${Math.round(diffMin / 1440)} day${Math.round(diffMin / 1440) > 1 ? "s" : ""} before`;
+                    else if (diffMin >= 60) offsetLabel = `${Math.round(diffMin / 60)} hour${Math.round(diffMin / 60) > 1 ? "s" : ""} before`;
+                    else if (diffMin > 0) offsetLabel = `${diffMin} min before`;
+                    else offsetLabel = "Travel time reminder";
+                  }
+
+                  return (
+                    <div
+                      key={reminder.id}
+                      className="rounded-xl border bg-card p-3 space-y-1 overflow-hidden"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Clock className="h-3.5 w-3.5 text-blue-400 shrink-0" />
+                          <span className="text-sm font-medium truncate">
+                            {reminder.eventName}
+                          </span>
+                        </div>
+                        <span
+                          className={`text-xs font-medium shrink-0 ${
+                            reminder.status === "pending"
+                              ? "text-blue-400"
+                              : reminder.status === "sent"
+                                ? "text-green-400"
+                                : "text-red-400"
+                          }`}
+                        >
+                          {reminder.status === "pending" ? "scheduled" : reminder.status}
+                        </span>
+                      </div>
+                      {offsetLabel && (
+                        <p className="text-xs text-muted-foreground">
+                          Reminder: {offsetLabel}
+                        </p>
+                      )}
+                      <p className="text-xs text-muted-foreground">
+                        Fires:{" "}
+                        {format(parseISO(reminder.scheduledAt), "MMM d, h:mm a")}
+                      </p>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                          <span>
+                            Send to: {reminder.sendToNames || reminder.sendTo}
+                          </span>
+                          {reminder.channel && (
+                            <span
+                              className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                                reminder.channel === "whatsapp"
+                                  ? "bg-green-500/15 text-green-400"
+                                  : "bg-blue-500/15 text-blue-400"
+                              }`}
+                            >
+                              {reminder.channel === "whatsapp" ? "WhatsApp" : "SMS"}
+                            </span>
+                          )}
+                        </div>
+                        <button
+                          onClick={() =>
+                            router.push(
+                              `/edit-event?id=${reminder.eventId}&from=/admin/usage`
+                            )
+                          }
+                          className="p-1 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                          title="Edit event"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                      {reminder.messageBody && (
+                        <p className="text-xs text-muted-foreground/60 whitespace-pre-wrap break-words">
+                          {reminder.messageBody}
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </>
+        ) : tab === "sms" ? (
           <>
             {/* Summary Cards */}
             <div className="grid grid-cols-2 gap-3">
