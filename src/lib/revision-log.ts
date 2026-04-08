@@ -1,4 +1,4 @@
-export const CURRENT_VERSION = "1.4.3";
+export const CURRENT_VERSION = "1.4.4";
 
 export const REVISION_LOG = [
   {
@@ -163,6 +163,15 @@ export const REVISION_LOG = [
       "Activity logging for settings updates, member profile CRUD, and saved location CRUD",
       "Activity log displays icons and labels for all entity types (events, members, settings, locations)",
       "Event deletion logged in activity log",
+    ],
+  },
+  {
+    version: "1.4.4",
+    date: "2026-04-08",
+    changes: [
+      "Fix: Event creation confirmation now uses preferred messaging channel (was hardcoded to SMS)",
+      "Fix: SMS/WhatsApp tag always shown on Message Logs cards (was missing for SMS)",
+      "Fix: Reminder cron endpoint now handles GET requests (Vercel cron sends GET, not POST)",
     ],
   },
 ];
