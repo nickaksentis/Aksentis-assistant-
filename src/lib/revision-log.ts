@@ -1,4 +1,4 @@
-export const CURRENT_VERSION = "2.0.0";
+export const CURRENT_VERSION = "2.1.0";
 
 export const REVISION_LOG = [
   {
@@ -202,6 +202,22 @@ export const REVISION_LOG = [
       "Blocked phone numbers management in Admin Usage & Logs (view, add, remove)",
       "Blocked numbers database table with admin CRUD API",
       "Empty TwiML response helper for silent webhook rejection",
+    ],
+  },
+  {
+    version: "2.1.0",
+    date: "2026-04-08",
+    changes: [
+      "AI context expanded to 6 months of upcoming and past events (was 14 days forward only)",
+      "Past events injected into AI context for address reuse and history awareness",
+      "Saved locations injected into AI context for automatic address matching",
+      "AI can save new locations via Google Places search (save_location action)",
+      "AI recommends locations by type from saved locations (e.g. 'restaurants in Bradenton')",
+      "Location type dropdown on admin Saved Locations page (Restaurant, Doctors Office, Retail, House, Other)",
+      "Location type badge displayed on saved location cards",
+      "Server-side Google Places autocomplete search extracted into shared utility function",
+      "Event creation via AI now stores placeId and coordinates when available from saved locations",
+      "Updated AI conversation prompt with location-aware capabilities and guidelines",
     ],
   },
 ];

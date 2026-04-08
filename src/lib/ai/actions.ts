@@ -5,10 +5,12 @@ import {
   reminders,
   familyMembers,
   activityLog,
+  savedLocations,
 } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { REMINDER_PRESETS } from "@/types";
 import { naiveToUTC, getDefaultTimezone } from "@/lib/timezone";
+import { searchPlaces } from "@/lib/places/google";
 import type { AIAction } from "./types";
 
 interface ActionResult {
@@ -36,6 +38,8 @@ export async function executeAction(
     case "list_events":
       // No-op: AI already has events in context and formats the reply
       return { success: true, detail: "Events listed in reply" };
+    case "save_location":
+      return executeSaveLocation(action, memberId);
   }
 }
 
@@ -53,6 +57,9 @@ async function executeCreateEvent(
         name: action.name,
         date: utcDate,
         location: action.location || null,
+        placeId: action.placeId || null,
+        latitude: action.latitude || null,
+        longitude: action.longitude || null,
         description: action.description || null,
         createdBy: memberId,
       })
@@ -270,6 +277,58 @@ async function executeUpdateEvent(
     return {
       success: false,
       detail: `Failed to update event: ${err instanceof Error ? err.message : String(err)}`,
+    };
+  }
+}
+
+async function executeSaveLocation(
+  action: Extract<AIAction, { type: "save_location" }>,
+  memberId: number
+): Promise<ActionResult> {
+  try {
+    let address = action.address || "";
+    let placeId: string | null = null;
+
+    // If searchQuery provided, look up via Google Places
+    if (action.searchQuery && !address) {
+      const results = await searchPlaces(action.searchQuery);
+      if (results.length > 0) {
+        address = results[0].description;
+        placeId = results[0].placeId;
+      }
+    }
+
+    if (!address) {
+      return { success: false, detail: "No address found for location" };
+    }
+
+    const [location] = await db
+      .insert(savedLocations)
+      .values({
+        name: action.name,
+        address,
+        placeId,
+        locationType: action.locationType || "other",
+      })
+      .returning();
+
+    await db.insert(activityLog).values({
+      action: "location_created",
+      entityType: "location",
+      entityId: location.id,
+      memberId,
+      changes: JSON.stringify({ name: action.name, address, source: "ai" }),
+    });
+
+    return {
+      success: true,
+      detail: `Saved location "${action.name}" at ${address} (ID: ${location.id})`,
+    };
+  } catch (err) {
+    console.error("executeSaveLocation error:", err);
+    return {
+      success: false,
+      detail: `Failed to save location: ${err instanceof Error ? err.message : String(err)}`,
     };
   }
 }

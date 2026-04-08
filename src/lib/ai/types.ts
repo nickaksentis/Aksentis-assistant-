@@ -17,6 +17,20 @@ export interface ConversationContext {
     attendees: string[];
     reminders: { scheduledAt: string; status: string }[];
   }[];
+  pastEvents: {
+    id: number;
+    name: string;
+    date: string;
+    location: string | null;
+    description: string | null;
+    attendees: string[];
+  }[];
+  savedLocations: {
+    id: number;
+    name: string;
+    address: string;
+    locationType: string;
+  }[];
   currentDate: string;
 }
 
@@ -25,6 +39,9 @@ export interface CreateEventAction {
   name: string;
   date: string; // ISO datetime like "2026-04-10T16:00"
   location?: string;
+  placeId?: string;
+  latitude?: string;
+  longitude?: string;
   description?: string;
   attendees?: string[];
   reminderPresets?: string[];
@@ -50,11 +67,20 @@ export interface ListEventsAction {
   type: "list_events";
 }
 
+export interface SaveLocationAction {
+  type: "save_location";
+  name: string;
+  address?: string;
+  searchQuery?: string;
+  locationType?: "restaurant" | "doctors_office" | "retail" | "house" | "other";
+}
+
 export type AIAction =
   | CreateEventAction
   | UpdateEventAction
   | DeleteEventAction
-  | ListEventsAction;
+  | ListEventsAction
+  | SaveLocationAction;
 
 export interface AIResponse {
   reply: string;

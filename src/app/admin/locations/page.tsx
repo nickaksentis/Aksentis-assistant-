@@ -27,6 +27,14 @@ interface SavedLocation {
   locationType: string;
 }
 
+const LOCATION_TYPES = [
+  { value: "other", label: "Other" },
+  { value: "restaurant", label: "Restaurant" },
+  { value: "doctors_office", label: "Doctors Office" },
+  { value: "retail", label: "Retail" },
+  { value: "house", label: "House" },
+];
+
 export default function AdminLocationsPage() {
   const [locations, setLocations] = useState<SavedLocation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -38,6 +46,7 @@ export default function AdminLocationsPage() {
     placeId: "",
     latitude: "",
     longitude: "",
+    locationType: "other",
   });
   const [error, setError] = useState("");
 
@@ -66,7 +75,7 @@ export default function AdminLocationsPage() {
     });
     if (res.ok) {
       setShowAdd(false);
-      setForm({ name: "", address: "", placeId: "", latitude: "", longitude: "" });
+      setForm({ name: "", address: "", placeId: "", latitude: "", longitude: "", locationType: "other" });
       loadLocations();
     } else {
       const data = await res.json();
@@ -79,11 +88,11 @@ export default function AdminLocationsPage() {
     const res = await fetch("/api/admin/locations", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, name: form.name, address: form.address }),
+      body: JSON.stringify({ id, name: form.name, address: form.address, locationType: form.locationType }),
     });
     if (res.ok) {
       setEditingId(null);
-      setForm({ name: "", address: "", placeId: "", latitude: "", longitude: "" });
+      setForm({ name: "", address: "", placeId: "", latitude: "", longitude: "", locationType: "other" });
       loadLocations();
     } else {
       const data = await res.json();
@@ -109,6 +118,7 @@ export default function AdminLocationsPage() {
       placeId: loc.placeId || "",
       latitude: loc.latitude || "",
       longitude: loc.longitude || "",
+      locationType: loc.locationType || "other",
     });
     setShowAdd(false);
   }
@@ -131,7 +141,7 @@ export default function AdminLocationsPage() {
             onClick={() => {
               setShowAdd(true);
               setEditingId(null);
-              setForm({ name: "", address: "", placeId: "", latitude: "", longitude: "" });
+              setForm({ name: "", address: "", placeId: "", latitude: "", longitude: "", locationType: "other" });
             }}
           >
             <Plus className="h-4 w-4" />
@@ -202,6 +212,23 @@ export default function AdminLocationsPage() {
               />
             </div>
 
+            <div className="space-y-2">
+              <Label>Type</Label>
+              <select
+                value={form.locationType}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, locationType: e.target.value }))
+                }
+                className="flex h-10 w-full rounded-md border border-input bg-input px-3 py-2 text-sm text-foreground ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                {LOCATION_TYPES.map((t) => (
+                  <option key={t.value} value={t.value}>
+                    {t.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <div className="flex gap-2">
               <Button
                 size="sm"
@@ -248,7 +275,14 @@ export default function AdminLocationsPage() {
               <div className="flex items-start gap-3 min-w-0">
                 <MapPin className="h-4 w-4 text-primary mt-0.5 shrink-0" />
                 <div className="min-w-0">
-                  <p className="font-medium truncate">{loc.name}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium truncate">{loc.name}</p>
+                    {loc.locationType && loc.locationType !== "other" && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/15 text-primary shrink-0">
+                        {loc.locationType.replace("_", " ")}
+                      </span>
+                    )}
+                  </div>
                   <p className="text-sm text-muted-foreground truncate">
                     {loc.address}
                   </p>

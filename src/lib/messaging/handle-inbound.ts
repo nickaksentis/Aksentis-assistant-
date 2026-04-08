@@ -13,6 +13,8 @@ import { getTemplate, interpolate } from "@/lib/messaging/templates";
 import {
   getConversationHistory,
   getUpcomingEvents,
+  getPastEvents,
+  getSavedLocations,
   buildConversationContext,
 } from "@/lib/ai/context";
 import { processConversation } from "@/lib/ai/conversation";
@@ -155,18 +157,23 @@ export async function handleInboundMessage(
     );
 
     // Build conversation context
-    const [history, upcomingEvents, allMembers] = await Promise.all([
-      getConversationHistory(member.id),
-      getUpcomingEvents(14, memberTz),
-      db
-        .select({ id: familyMembers.id, name: familyMembers.name })
-        .from(familyMembers),
-    ]);
+    const [history, upcomingEvents, pastEvents, savedLocs, allMembers] =
+      await Promise.all([
+        getConversationHistory(member.id),
+        getUpcomingEvents(183, memberTz),
+        getPastEvents(183, memberTz),
+        getSavedLocations(),
+        db
+          .select({ id: familyMembers.id, name: familyMembers.name })
+          .from(familyMembers),
+      ]);
 
     const context = buildConversationContext(
       { id: member.id, name: member.name, timezone: member.timezone },
       history,
       upcomingEvents,
+      pastEvents,
+      savedLocs,
       allMembers,
       currentDate
     );

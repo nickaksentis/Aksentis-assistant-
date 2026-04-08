@@ -21,7 +21,7 @@ Current date and time: ${context.currentDate}
 You are talking to: ${context.memberName}
 Family members: ${context.familyMembers.map((m) => `${m.name} (id: ${m.id})`).join(", ")}
 
-Upcoming events (next 14 days):
+Upcoming events (next 6 months):
 ${
   context.upcomingEvents.length === 0
     ? "No upcoming events."
@@ -29,6 +29,30 @@ ${
         .map(
           (e) =>
             `- [ID: ${e.id}] "${e.name}" on ${e.date}${e.location ? ` at ${e.location}` : ""}${e.description ? ` — ${e.description}` : ""}${e.attendees.length > 0 ? ` (attendees: ${e.attendees.join(", ")})` : ""}`
+        )
+        .join("\n")
+}
+
+Past events (last 6 months):
+${
+  context.pastEvents.length === 0
+    ? "No past events."
+    : context.pastEvents
+        .map(
+          (e) =>
+            `- [ID: ${e.id}] "${e.name}" on ${e.date}${e.location ? ` at ${e.location}` : ""}${e.description ? ` — ${e.description}` : ""}`
+        )
+        .join("\n")
+}
+
+Saved locations:
+${
+  context.savedLocations.length === 0
+    ? "No saved locations."
+    : context.savedLocations
+        .map(
+          (loc) =>
+            `- [ID: ${loc.id}] "${loc.name}" — ${loc.address}${loc.locationType !== "other" ? ` (${loc.locationType.replace("_", " ")})` : ""}`
         )
         .join("\n")
 }`;
