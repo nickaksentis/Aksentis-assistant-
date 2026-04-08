@@ -115,22 +115,40 @@ ${
     const parsed = JSON.parse(text) as AIResponse;
 
     if (!parsed.reply || typeof parsed.reply !== "string") {
+      const cleanText = content.text
+        .replace(/\{[\s\S]*"reply"\s*:[\s\S]*\}\s*$/, "")
+        .trim();
       return {
-        reply: content.text.trim(),
+        reply: (cleanText || "Sorry, I had trouble processing that.").substring(0, 480),
         action: null,
       };
     }
 
     return parsed;
   } catch {
-    // If JSON parsing fails, treat the entire response as a plain text reply
-    // This handles cases where the AI returns a natural response without JSON
+    // Try to extract JSON from mixed text+JSON responses
+    const jsonMatch = content.text.match(/\{[\s\S]*"reply"\s*:\s*"[\s\S]*\}$/);
+    if (jsonMatch) {
+      try {
+        const extracted = JSON.parse(jsonMatch[0]) as AIResponse;
+        if (extracted.reply && typeof extracted.reply === "string") {
+          return extracted;
+        }
+      } catch {
+        // extraction also failed, fall through
+      }
+    }
+
+    // Final fallback: strip any JSON artifacts from the text
     console.warn(
       "AI response was not valid JSON, using as plain text:",
       content.text.substring(0, 200)
     );
+    const cleanText = content.text
+      .replace(/\{[\s\S]*"reply"\s*:[\s\S]*\}\s*$/, "")
+      .trim();
     return {
-      reply: content.text.trim().substring(0, 480),
+      reply: (cleanText || content.text.trim()).substring(0, 480),
       action: null,
     };
   }

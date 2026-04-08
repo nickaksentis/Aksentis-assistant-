@@ -1,4 +1,4 @@
-export const CURRENT_VERSION = "2.1.0";
+export const CURRENT_VERSION = "2.1.1";
 
 export const REVISION_LOG = [
   {
@@ -218,6 +218,13 @@ export const REVISION_LOG = [
       "Server-side Google Places autocomplete search extracted into shared utility function",
       "Event creation via AI now stores placeId and coordinates when available from saved locations",
       "Updated AI conversation prompt with location-aware capabilities and guidelines",
+    ],
+  },
+  {
+    version: "2.1.1",
+    date: "2026-04-08",
+    changes: [
+      "Fix: AI JSON response no longer leaks into SMS replies when Claude returns mixed text+JSON",
     ],
   },
 ];
