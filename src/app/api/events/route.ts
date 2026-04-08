@@ -12,7 +12,7 @@ import {
 import { getSession } from "@/lib/auth";
 import { REMINDER_PRESETS } from "@/types";
 import { desc, eq } from "drizzle-orm";
-import { sendSMS } from "@/lib/sms/twilio";
+import { sendMessage, type Channel } from "@/lib/messaging/send";
 import { getTravelTime } from "@/lib/places/google";
 import {
   naiveToUTC,
@@ -184,7 +184,7 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // Send SMS confirmation to creator
+  // Send confirmation to creator via their preferred channel
   try {
     if (creator?.phone && creator.isActive) {
       const formattedDate = formatEventTimeForTimezone(
@@ -195,18 +195,20 @@ export async function POST(req: NextRequest) {
       const locationInfo = location ? ` at ${location.split(",")[0]}` : "";
       const confirmMsg = `All set! I've added '${name.trim()}' on ${formattedDate}${locationInfo} to your calendar. Reminders are set!`;
 
-      const sid = await sendSMS(creator.phone, confirmMsg);
+      const channel = (creator.preferredChannel as Channel) || undefined;
+      const result = await sendMessage(creator.phone, confirmMsg, channel);
       await db.insert(smsLog).values({
         memberId: session.memberId,
         phone: creator.phone,
         messageBody: confirmMsg,
-        twilioSid: sid,
+        twilioSid: result.sid,
         direction: "outbound",
         status: "sent",
+        channel: result.channel,
       });
     }
   } catch {
-    // SMS confirmation is best-effort
+    // Confirmation message is best-effort
   }
 
   return NextResponse.json(newEvent, { status: 201 });
