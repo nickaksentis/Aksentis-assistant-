@@ -12,7 +12,15 @@ import { generateReminderMessage } from "@/lib/ai/generate-reminder";
 import { sendMessage, type Channel } from "@/lib/messaging/send";
 import { formatEventTimeForTimezone } from "@/lib/timezone";
 
+export async function GET(req: NextRequest) {
+  return processReminders(req);
+}
+
 export async function POST(req: NextRequest) {
+  return processReminders(req);
+}
+
+async function processReminders(req: NextRequest) {
   const authHeader = req.headers.get("authorization");
   const isLocal = process.env.NODE_ENV === "development";
   if (!isLocal && !authHeader) {
