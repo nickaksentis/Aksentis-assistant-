@@ -36,9 +36,20 @@ export async function handleInboundMessage(
   // Normalize phone: strip whatsapp: prefix and whitespace
   const phone = rawPhone.replace(/^whatsapp:/, "").trim();
 
-  // Log inbound message
+  // ── Check if phone is blocked ──
+  const blocked = await db.query.blockedPhones.findFirst({
+    where: eq(blockedPhones.phone, phone),
+  });
+
+  // ── Look up registered family member ──
+  const member = await db.query.familyMembers.findFirst({
+    where: eq(familyMembers.phone, phone),
+  });
+
+  // Log inbound message (with memberId if known)
   await db.insert(smsLog).values({
     phone,
+    memberId: member?.id || null,
     messageBody: body,
     twilioSid: messageSid || null,
     direction: "inbound",
@@ -46,10 +57,6 @@ export async function handleInboundMessage(
     channel,
   });
 
-  // ── Check if phone is blocked ──
-  const blocked = await db.query.blockedPhones.findFirst({
-    where: eq(blockedPhones.phone, phone),
-  });
   if (blocked) {
     // Silent rejection — no response
     await db.insert(smsLog).values({
@@ -61,11 +68,6 @@ export async function handleInboundMessage(
     });
     return generateEmptyTwimlResponse();
   }
-
-  // ── Look up registered family member ──
-  const member = await db.query.familyMembers.findFirst({
-    where: eq(familyMembers.phone, phone),
-  });
 
   // ── Unregistered number — silent rejection + spam tracking ──
   if (!member) {

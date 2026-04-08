@@ -1,4 +1,4 @@
-export const CURRENT_VERSION = "2.1.1";
+export const CURRENT_VERSION = "2.1.2";
 
 export const REVISION_LOG = [
   {
@@ -225,6 +225,13 @@ export const REVISION_LOG = [
     date: "2026-04-08",
     changes: [
       "Fix: AI JSON response no longer leaks into SMS replies when Claude returns mixed text+JSON",
+    ],
+  },
+  {
+    version: "2.1.2",
+    date: "2026-04-08",
+    changes: [
+      "Fix: Inbound messages now show member name instead of phone number on Usage & Logs page",
     ],
   },
 ];
