@@ -16,6 +16,8 @@ const migrations = [
   `CREATE TABLE IF NOT EXISTS activity_log (id INTEGER PRIMARY KEY AUTOINCREMENT, action TEXT NOT NULL, entity_type TEXT NOT NULL, entity_id INTEGER NOT NULL, member_id INTEGER REFERENCES family_members(id), changes TEXT, created_at TEXT NOT NULL DEFAULT (datetime('now')))`,
   // v1.3.0 - Site settings
   `CREATE TABLE IF NOT EXISTS site_settings (key TEXT PRIMARY KEY, value TEXT NOT NULL)`,
+  // v2.0.0 - Blocked phones
+  `CREATE TABLE IF NOT EXISTS sms_blocked_phones (phone TEXT PRIMARY KEY, reason TEXT, blocked_at TEXT NOT NULL DEFAULT (datetime('now')))`,
 ];
 
 // ALTER TABLE migrations — these use a try/catch per statement since

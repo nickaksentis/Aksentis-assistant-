@@ -1,4 +1,4 @@
-export const CURRENT_VERSION = "1.5.0";
+export const CURRENT_VERSION = "2.0.0";
 
 export const REVISION_LOG = [
   {
@@ -185,6 +185,23 @@ export const REVISION_LOG = [
       "Message Templates, AI Tone, and Cheat Sheet sections are collapsible",
       "Templates seeded via migration with sensible defaults",
       "Fix: Cron auth now accepts Vercel cron requests (was returning 401)",
+    ],
+  },
+  {
+    version: "2.0.0",
+    date: "2026-04-08",
+    changes: [
+      "Complete conversational AI rewrite: multi-turn Claude Chat-like experience over SMS/WhatsApp",
+      "AI conversation replaces rigid parse-or-fail flow — natural back-and-forth for event details",
+      "Conversation context built from recent message history (last 20 messages / 48 hours)",
+      "Upcoming events (14 days) injected as AI context for event modification and queries",
+      "AI can create, update, delete events and list schedule through natural language",
+      "Configurable AI conversation system prompt in Admin Settings",
+      "Unregistered numbers receive silent rejection (no response sent)",
+      "Auto-block phone numbers after 3 unregistered message attempts",
+      "Blocked phone numbers management in Admin Usage & Logs (view, add, remove)",
+      "Blocked numbers database table with admin CRUD API",
+      "Empty TwiML response helper for silent webhook rejection",
     ],
   },
 ];

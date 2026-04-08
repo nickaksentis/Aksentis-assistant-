@@ -114,3 +114,11 @@ export const savedLocations = sqliteTable("saved_locations", {
     .notNull()
     .$defaultFn(() => new Date().toISOString()),
 });
+
+export const blockedPhones = sqliteTable("sms_blocked_phones", {
+  phone: text("phone").primaryKey(),
+  reason: text("reason"),
+  blockedAt: text("blocked_at")
+    .notNull()
+    .$defaultFn(() => new Date().toISOString()),
+});

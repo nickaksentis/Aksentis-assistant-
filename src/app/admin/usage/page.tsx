@@ -18,6 +18,8 @@ import {
   MapPin,
   ChevronLeft,
   ChevronRight,
+  Ban,
+  X,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { useRouter } from "next/navigation";
@@ -68,6 +70,12 @@ interface ReminderEntry {
   channel: string | null;
 }
 
+interface BlockedEntry {
+  phone: string;
+  reason: string | null;
+  blockedAt: string;
+}
+
 interface ReminderCounts {
   scheduled: number;
   sent: number;
@@ -76,7 +84,7 @@ interface ReminderCounts {
 
 export default function AdminUsagePage() {
   const router = useRouter();
-  const [tab, setTab] = useState<"sms" | "activity" | "reminders">("sms");
+  const [tab, setTab] = useState<"sms" | "activity" | "reminders" | "blocked">("sms");
   const [logs, setLogs] = useState<SmsLogEntry[]>([]);
   const [counts, setCounts] = useState<Counts>({
     total: 0,
@@ -92,6 +100,9 @@ export default function AdminUsagePage() {
     sent: 0,
     failed: 0,
   });
+  const [blockedList, setBlockedList] = useState<BlockedEntry[]>([]);
+  const [blockedTotal, setBlockedTotal] = useState(0);
+  const [blockPhone, setBlockPhone] = useState("");
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>("all");
   const [reminderFilter, setReminderFilter] = useState<string>("all");
@@ -159,11 +170,44 @@ export default function AdminUsagePage() {
     setLoading(false);
   }
 
+  async function loadBlocked() {
+    setLoading(true);
+    const res = await fetch("/api/admin/blocked");
+    if (res.ok) {
+      const data = await res.json();
+      setBlockedList(data.blocked);
+      setBlockedTotal(data.total || 0);
+    }
+    setLoading(false);
+  }
+
+  async function handleBlockNumber() {
+    if (!blockPhone.trim()) return;
+    await fetch("/api/admin/blocked", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phone: blockPhone.trim() }),
+    });
+    setBlockPhone("");
+    loadBlocked();
+  }
+
+  async function handleUnblock(phone: string) {
+    await fetch("/api/admin/blocked", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phone }),
+    });
+    loadBlocked();
+  }
+
   useEffect(() => {
     if (tab === "sms") {
       loadLogs(filter, smsPage, pageSize);
     } else if (tab === "activity") {
       loadActivity(activityPage, pageSize);
+    } else if (tab === "blocked") {
+      loadBlocked();
     } else {
       loadReminders(reminderFilter, reminderPage, pageSize);
     }
@@ -316,6 +360,21 @@ export default function AdminUsagePage() {
             }`}
           >
             Reminders
+          </button>
+          <button
+            onClick={() => setTab("blocked")}
+            className={`flex-1 rounded-xl py-2.5 text-sm font-medium transition-colors border relative ${
+              tab === "blocked"
+                ? "bg-primary text-primary-foreground border-primary"
+                : "bg-background text-foreground border-input hover:bg-accent"
+            }`}
+          >
+            Blocked
+            {blockedTotal > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] font-bold rounded-full h-4 min-w-[16px] flex items-center justify-center px-1">
+                {blockedTotal}
+              </span>
+            )}
           </button>
         </div>
 
@@ -570,6 +629,70 @@ export default function AdminUsagePage() {
               </div>
             )}
             <Pagination page={smsPage} total={smsTotal} onPageChange={setSmsPage} />
+          </>
+        ) : tab === "blocked" ? (
+          /* Blocked Numbers Tab */
+          <>
+            {/* Add number form */}
+            <div className="rounded-xl border bg-card p-4 space-y-3">
+              <p className="text-sm font-medium">Block a Phone Number</p>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={blockPhone}
+                  onChange={(e) => setBlockPhone(e.target.value)}
+                  placeholder="+1234567890"
+                  className="flex-1 rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                />
+                <button
+                  onClick={handleBlockNumber}
+                  disabled={!blockPhone.trim()}
+                  className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 transition-colors disabled:opacity-40"
+                >
+                  <Ban className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Blocked list */}
+            {loading ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : blockedList.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8">
+                No blocked numbers.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {blockedList.map((entry) => (
+                  <div
+                    key={entry.phone}
+                    className="rounded-xl border bg-card p-3 space-y-1 overflow-hidden"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Ban className="h-3.5 w-3.5 text-red-400 shrink-0" />
+                        <span className="text-sm font-medium">{entry.phone}</span>
+                      </div>
+                      <button
+                        onClick={() => handleUnblock(entry.phone)}
+                        className="p-1 rounded-md hover:bg-accent text-muted-foreground hover:text-red-400 transition-colors shrink-0"
+                        title="Unblock"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                    {entry.reason && (
+                      <p className="text-xs text-muted-foreground">{entry.reason}</p>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      Blocked: {format(parseISO(entry.blockedAt), "MMM d, h:mm a")}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
           </>
         ) : (
           /* Activity Log Tab */

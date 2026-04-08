@@ -7,10 +7,12 @@ import {
   smsLog,
   activityLog,
   siteSettings,
+  blockedPhones,
 } from "./schema";
 
-// siteSettings is a key-value table with no relations
+// Standalone tables with no relations
 void siteSettings;
+void blockedPhones;
 
 export const familyMembersRelations = relations(familyMembers, ({ many }) => ({
   events: many(events),

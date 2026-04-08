@@ -1,15 +1,23 @@
 import { db } from "@/lib/db";
-import { familyMembers, events, reminders, smsLog } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
-import { parseEventFromText } from "@/lib/ai/parse-event";
-import { generateTwimlResponse } from "@/lib/messaging/send";
-import { REMINDER_PRESETS } from "@/types";
 import {
-  naiveToUTC,
-  getDefaultTimezone,
-  formatEventTimeForTimezone,
-} from "@/lib/timezone";
+  familyMembers,
+  smsLog,
+  blockedPhones,
+} from "@/lib/db/schema";
+import { eq, and } from "drizzle-orm";
+import {
+  generateTwimlResponse,
+  generateEmptyTwimlResponse,
+} from "@/lib/messaging/send";
 import { getTemplate, interpolate } from "@/lib/messaging/templates";
+import {
+  getConversationHistory,
+  getUpcomingEvents,
+  buildConversationContext,
+} from "@/lib/ai/context";
+import { processConversation } from "@/lib/ai/conversation";
+import { executeAction } from "@/lib/ai/actions";
+import { getDefaultTimezone, formatEventTimeForTimezone } from "@/lib/timezone";
 
 export type InboundChannel = "sms" | "whatsapp";
 
@@ -36,12 +44,28 @@ export async function handleInboundMessage(
     channel,
   });
 
-  // Check if sender is a registered family member
+  // ── Check if phone is blocked ──
+  const blocked = await db.query.blockedPhones.findFirst({
+    where: eq(blockedPhones.phone, phone),
+  });
+  if (blocked) {
+    // Silent rejection — no response
+    await db.insert(smsLog).values({
+      phone,
+      messageBody: `[BLOCKED] ${body}`,
+      direction: "inbound",
+      status: "spam_blocked",
+      channel,
+    });
+    return generateEmptyTwimlResponse();
+  }
+
+  // ── Look up registered family member ──
   const member = await db.query.familyMembers.findFirst({
     where: eq(familyMembers.phone, phone),
   });
 
-  // Unknown number — log as spam and reject
+  // ── Unregistered number — silent rejection + spam tracking ──
   if (!member) {
     await db.insert(smsLog).values({
       phone,
@@ -51,18 +75,33 @@ export async function handleInboundMessage(
       channel,
     });
 
-    const unregisteredMsg = await getTemplate("tpl_unregistered");
-    await db.insert(smsLog).values({
-      phone,
-      messageBody: unregisteredMsg,
-      direction: "outbound",
-      status: "sent",
-      channel,
-    });
-    return generateTwimlResponse(unregisteredMsg);
+    // Count previous spam attempts for this number
+    const spamLogs = await db
+      .select({ id: smsLog.id })
+      .from(smsLog)
+      .where(
+        and(
+          eq(smsLog.phone, phone),
+          eq(smsLog.status, "spam_blocked")
+        )
+      );
+
+    // After 3 attempts, auto-block the number
+    if (spamLogs.length >= 3) {
+      await db
+        .insert(blockedPhones)
+        .values({
+          phone,
+          reason: `Auto-blocked after ${spamLogs.length} unregistered attempts`,
+        })
+        .onConflictDoNothing();
+    }
+
+    // Silent rejection — no response to unregistered numbers
+    return generateEmptyTwimlResponse();
   }
 
-  // Handle YES activation response
+  // ── Handle YES activation response ──
   if (body.trim().toUpperCase() === "YES" && !member.isActive) {
     await db
       .update(familyMembers)
@@ -83,7 +122,7 @@ export async function handleInboundMessage(
     return generateTwimlResponse(activationMsg);
   }
 
-  // Inactive member — block and prompt activation
+  // ── Inactive member — prompt activation ──
   if (!member.isActive) {
     await db.insert(smsLog).values({
       memberId: member.id,
@@ -106,108 +145,58 @@ export async function handleInboundMessage(
     return generateTwimlResponse(inactiveMsg);
   }
 
-  // Parse the message with AI
+  // ── Active member — Conversational AI ──
   try {
-    const allMembers = await db
-      .select({ name: familyMembers.name })
-      .from(familyMembers);
-    const memberNames = allMembers.map((m) => m.name);
-
-    const parsed = await parseEventFromText(
-      body,
-      new Date().toISOString(),
-      memberNames
-    );
-
-    if (!parsed.name || !parsed.date) {
-      const replyMsg = await getTemplate("tpl_parse_failure");
-      await db.insert(smsLog).values({
-        memberId: member.id,
-        phone,
-        messageBody: replyMsg,
-        direction: "outbound",
-        status: "sent",
-        channel,
-      });
-      return generateTwimlResponse(replyMsg);
-    }
-
-    // Convert parsed date to UTC using sender's timezone
     const memberTz = member.timezone || (await getDefaultTimezone());
-    const utcDate = naiveToUTC(parsed.date, memberTz);
-
-    // Create the event
-    const [newEvent] = await db
-      .insert(events)
-      .values({
-        name: parsed.name,
-        date: utcDate,
-        endDate: null,
-        location: parsed.location || null,
-        description: parsed.description || null,
-        createdBy: member.id,
-      })
-      .returning();
-
-    // Create default reminders
-    const presetValues = parsed.reminderPresets?.length
-      ? parsed.reminderPresets
-      : ["1d"];
-
-    const eventDate = new Date(utcDate);
-    const reminderRows = presetValues
-      .map((presetValue: string) => {
-        const preset = REMINDER_PRESETS.find((p) => p.value === presetValue);
-        if (!preset) return null;
-        const scheduledAt = new Date(
-          eventDate.getTime() - preset.minutes * 60 * 1000
-        );
-        if (scheduledAt <= new Date()) return null;
-        return {
-          eventId: newEvent.id,
-          scheduledAt: scheduledAt.toISOString(),
-          sendTo: "creator" as const,
-          status: "pending" as const,
-        };
-      })
-      .filter(Boolean);
-
-    if (reminderRows.length > 0) {
-      await db
-        .insert(reminders)
-        .values(reminderRows as typeof reminders.$inferInsert[]);
-    }
-
-    // Build confirmation message from template
-    const formattedDate = formatEventTimeForTimezone(
-      utcDate,
+    const currentDate = formatEventTimeForTimezone(
+      new Date().toISOString(),
       memberTz,
-      "EEE MMM d 'at' h:mm a"
+      "EEE MMM d, yyyy 'at' h:mm a zzz"
     );
-    const reminderInfo =
-      reminderRows.length > 0
-        ? ` Reminders set for ${presetValues.join(", ")} before.`
-        : "";
 
-    const confirmTpl = await getTemplate("tpl_event_created_inbound");
-    const confirmation = interpolate(confirmTpl, {
-      EventName: parsed.name,
-      Date: formattedDate,
-      Location: parsed.location ? ` At ${parsed.location}.` : "",
-      ReminderTimes: reminderInfo,
-    });
+    // Build conversation context
+    const [history, upcomingEvents, allMembers] = await Promise.all([
+      getConversationHistory(member.id),
+      getUpcomingEvents(14, memberTz),
+      db
+        .select({ id: familyMembers.id, name: familyMembers.name })
+        .from(familyMembers),
+    ]);
+
+    const context = buildConversationContext(
+      { id: member.id, name: member.name, timezone: member.timezone },
+      history,
+      upcomingEvents,
+      allMembers,
+      currentDate
+    );
+
+    // Process through conversational AI
+    const aiResponse = await processConversation(body, context);
+
+    // Execute action if present
+    if (aiResponse.action) {
+      const result = await executeAction(
+        aiResponse.action,
+        member.id,
+        member.timezone
+      );
+      if (!result.success) {
+        console.error("Action execution failed:", result.detail);
+      }
+    }
 
     // Log outbound response
     await db.insert(smsLog).values({
       memberId: member.id,
       phone,
-      messageBody: confirmation,
+      messageBody: aiResponse.reply,
       direction: "outbound",
       status: "sent",
       channel,
     });
 
-    return generateTwimlResponse(confirmation);
+    return generateTwimlResponse(aiResponse.reply);
   } catch (err) {
     console.error(`Inbound ${channel} processing error:`, err);
     const errorMsg = await getTemplate("tpl_error");

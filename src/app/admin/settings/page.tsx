@@ -101,6 +101,11 @@ const AI_TONE_FIELDS = [
     label: "Event Parser AI Identity",
     description: "The identity/role description given to the AI when parsing inbound messages into events.",
   },
+  {
+    key: "ai_conversation_prompt",
+    label: "Conversational AI Prompt",
+    description: "The full system prompt for the conversational SMS/WhatsApp assistant. Controls personality, capabilities, and response format.",
+  },
 ];
 
 const VARIABLE_CHEATSHEET = [

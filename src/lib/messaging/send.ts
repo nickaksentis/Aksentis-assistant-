@@ -68,6 +68,10 @@ export function generateTwimlResponse(body: string): string {
   return `<?xml version="1.0" encoding="UTF-8"?><Response><Message>${escapeXml(body)}</Message></Response>`;
 }
 
+export function generateEmptyTwimlResponse(): string {
+  return `<?xml version="1.0" encoding="UTF-8"?><Response></Response>`;
+}
+
 function escapeXml(str: string): string {
   return str
     .replace(/&/g, "&amp;")
