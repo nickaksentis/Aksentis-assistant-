@@ -9,6 +9,7 @@ import {
   getDefaultTimezone,
   formatEventTimeForTimezone,
 } from "@/lib/timezone";
+import { getTemplate, interpolate } from "@/lib/messaging/templates";
 
 export type InboundChannel = "sms" | "whatsapp";
 
@@ -50,8 +51,7 @@ export async function handleInboundMessage(
       channel,
     });
 
-    const unregisteredMsg =
-      "Sorry, this number isn't registered with the family calendar.";
+    const unregisteredMsg = await getTemplate("tpl_unregistered");
     await db.insert(smsLog).values({
       phone,
       messageBody: unregisteredMsg,
@@ -69,8 +69,7 @@ export async function handleInboundMessage(
       .set({ isActive: true })
       .where(eq(familyMembers.id, member.id));
 
-    const activationMsg =
-      "You're all set! Your account is now active. You can now use the Family Calendar Assistant.";
+    const activationMsg = await getTemplate("tpl_activation_success");
 
     await db.insert(smsLog).values({
       memberId: member.id,
@@ -95,8 +94,7 @@ export async function handleInboundMessage(
       channel,
     });
 
-    const inactiveMsg =
-      "Your account isn't active yet. Reply YES to activate.";
+    const inactiveMsg = await getTemplate("tpl_inactive_prompt");
     await db.insert(smsLog).values({
       memberId: member.id,
       phone,
@@ -122,8 +120,7 @@ export async function handleInboundMessage(
     );
 
     if (!parsed.name || !parsed.date) {
-      const replyMsg =
-        "I couldn't understand that. Try something like: 'Soccer practice Tuesday at 4pm at Lincoln Park'";
+      const replyMsg = await getTemplate("tpl_parse_failure");
       await db.insert(smsLog).values({
         memberId: member.id,
         phone,
@@ -181,7 +178,7 @@ export async function handleInboundMessage(
         .values(reminderRows as typeof reminders.$inferInsert[]);
     }
 
-    // Build confirmation message
+    // Build confirmation message from template
     const formattedDate = formatEventTimeForTimezone(
       utcDate,
       memberTz,
@@ -192,7 +189,13 @@ export async function handleInboundMessage(
         ? ` Reminders set for ${presetValues.join(", ")} before.`
         : "";
 
-    const confirmation = `Got it! Added '${parsed.name}' on ${formattedDate}.${parsed.location ? ` At ${parsed.location}.` : ""}${reminderInfo}`;
+    const confirmTpl = await getTemplate("tpl_event_created_inbound");
+    const confirmation = interpolate(confirmTpl, {
+      EventName: parsed.name,
+      Date: formattedDate,
+      Location: parsed.location ? ` At ${parsed.location}.` : "",
+      ReminderTimes: reminderInfo,
+    });
 
     // Log outbound response
     await db.insert(smsLog).values({
@@ -207,8 +210,7 @@ export async function handleInboundMessage(
     return generateTwimlResponse(confirmation);
   } catch (err) {
     console.error(`Inbound ${channel} processing error:`, err);
-    const errorMsg =
-      "Sorry, something went wrong processing your message. Please try again.";
+    const errorMsg = await getTemplate("tpl_error");
     await db.insert(smsLog).values({
       memberId: member.id,
       phone,

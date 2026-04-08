@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@libsql/client";
 import { CURRENT_VERSION } from "@/lib/revision-log";
+import { MESSAGE_TEMPLATES, AI_TONE_DEFAULTS } from "@/lib/messaging/templates";
 
 // This endpoint runs database migrations automatically.
 // Called during Vercel build or manually.
@@ -108,6 +109,18 @@ export async function POST() {
     `INSERT OR IGNORE INTO site_settings (key, value) VALUES ('defaultTimezone', 'America/New_York')`,
     `INSERT OR IGNORE INTO site_settings (key, value) VALUES ('defaultChannel', 'sms')`,
   ];
+
+  // Seed message templates and AI tone settings
+  for (const [key, value] of Object.entries(MESSAGE_TEMPLATES)) {
+    seedStatements.push(
+      `INSERT OR IGNORE INTO site_settings (key, value) VALUES ('${key}', '${value.replace(/'/g, "''")}')`
+    );
+  }
+  for (const [key, value] of Object.entries(AI_TONE_DEFAULTS)) {
+    seedStatements.push(
+      `INSERT OR IGNORE INTO site_settings (key, value) VALUES ('${key}', '${value.replace(/'/g, "''")}')`
+    );
+  }
 
   for (const sql of seedStatements) {
     try {

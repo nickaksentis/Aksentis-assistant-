@@ -21,10 +21,23 @@ export async function POST(req: NextRequest) {
 }
 
 async function processReminders(req: NextRequest) {
+  // Vercel cron sends Authorization: Bearer <CRON_SECRET> if CRON_SECRET is set,
+  // otherwise verify by user-agent. Allow local dev without auth.
   const authHeader = req.headers.get("authorization");
+  const userAgent = req.headers.get("user-agent") || "";
   const isLocal = process.env.NODE_ENV === "development";
-  if (!isLocal && !authHeader) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const isVercelCron = userAgent.startsWith("vercel-cron");
+  const cronSecret = process.env.CRON_SECRET;
+
+  if (!isLocal && !isVercelCron) {
+    // If CRON_SECRET is set, verify Bearer token matches
+    if (cronSecret) {
+      if (authHeader !== `Bearer ${cronSecret}`) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+    } else if (!authHeader) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
   }
 
   const now = new Date().toISOString();

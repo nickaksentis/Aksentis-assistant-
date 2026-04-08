@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { getAiTone } from "@/lib/messaging/templates";
 
 const anthropic = new Anthropic();
 
@@ -17,13 +18,15 @@ export async function generateReminderMessage(
     ? `Location: ${context.eventLocation}${context.travelTimeMinutes ? ` (about ${context.travelTimeMinutes} min drive)` : ""}`
     : "";
 
+  const tonePrompt = await getAiTone("ai_reminder_prompt");
+
   const message = await anthropic.messages.create({
     model: "claude-sonnet-4-20250514",
     max_tokens: 256,
     messages: [
       {
         role: "user",
-        content: `Generate a friendly, concise SMS reminder for a family calendar event. Keep it warm but brief (under 160 chars if possible).
+        content: `${tonePrompt}
 
 Recipient: ${context.recipientName}
 Event: ${context.eventName}

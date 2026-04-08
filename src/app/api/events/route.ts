@@ -14,6 +14,7 @@ import { REMINDER_PRESETS } from "@/types";
 import { desc, eq } from "drizzle-orm";
 import { sendMessage, type Channel } from "@/lib/messaging/send";
 import { getTravelTime } from "@/lib/places/google";
+import { getTemplate, interpolate } from "@/lib/messaging/templates";
 import {
   naiveToUTC,
   getDefaultTimezone,
@@ -169,12 +170,19 @@ export async function POST(req: NextRequest) {
               creatorTz,
               "h:mm a"
             );
+            const travelTpl = await getTemplate("tpl_travel_reminder");
+            const travelMsg = interpolate(travelTpl, {
+              TravelTime: travel.durationText,
+              Location: location?.split(",")[0] || "your event",
+              EventName: name.trim(),
+              Date: localTime,
+            });
             await db.insert(reminders).values({
               eventId: newEvent.id,
               scheduledAt: departureTime.toISOString(),
               sendTo: "creator",
               status: "pending",
-              messageBody: `Time to head out! It's about ${travel.durationText} to ${location?.split(",")[0] || "your event"}. Your ${name.trim()} starts at ${localTime}.`,
+              messageBody: travelMsg,
             });
           }
         }
@@ -193,7 +201,12 @@ export async function POST(req: NextRequest) {
         "EEE, MMM d 'at' h:mm a"
       );
       const locationInfo = location ? ` at ${location.split(",")[0]}` : "";
-      const confirmMsg = `All set! I've added '${name.trim()}' on ${formattedDate}${locationInfo} to your calendar. Reminders are set!`;
+      const tpl = await getTemplate("tpl_event_created");
+      const confirmMsg = interpolate(tpl, {
+        EventName: name.trim(),
+        Date: formattedDate,
+        Location: locationInfo,
+      });
 
       const channel = (creator.preferredChannel as Channel) || undefined;
       const result = await sendMessage(creator.phone, confirmMsg, channel);

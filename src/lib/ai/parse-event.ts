@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { getAiTone } from "@/lib/messaging/templates";
 
 interface ParsedEvent {
   name: string;
@@ -16,13 +17,15 @@ export async function parseEventFromText(
   currentDate: string,
   familyMembers: string[]
 ): Promise<ParsedEvent> {
+  const tonePrompt = await getAiTone("ai_parse_prompt");
+
   const message = await anthropic.messages.create({
     model: "claude-sonnet-4-20250514",
     max_tokens: 1024,
     messages: [
       {
         role: "user",
-        content: `You are a helpful assistant that parses natural language into calendar event data.
+        content: `${tonePrompt}
 
 Current date and time: ${currentDate}
 Family members: ${familyMembers.join(", ")}

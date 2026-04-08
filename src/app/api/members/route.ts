@@ -4,6 +4,7 @@ import { familyMembers, smsLog, activityLog } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { getSession } from "@/lib/auth";
 import { sendMessage, type Channel } from "@/lib/messaging/send";
+import { getTemplate, interpolate } from "@/lib/messaging/templates";
 
 // Public: returns id + name only (for login page and attendee picker)
 export async function GET() {
@@ -102,7 +103,8 @@ export async function POST(req: NextRequest) {
   // Send activation message via preferred channel
   try {
     const channel = (preferredChannel as Channel) || undefined;
-    const activationMsg = `Hi ${member.name}! You've been added to the Family Calendar Assistant. Reply YES to activate your account.`;
+    const activationTpl = await getTemplate("tpl_member_activation");
+    const activationMsg = interpolate(activationTpl, { Name: member.name });
     const result = await sendMessage(member.phone, activationMsg, channel);
     await db.insert(smsLog).values({
       memberId: member.id,

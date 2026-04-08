@@ -4,6 +4,7 @@ import { familyMembers, smsLog } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { getSession } from "@/lib/auth";
 import { sendMessage, type Channel } from "@/lib/messaging/send";
+import { getTemplate, interpolate } from "@/lib/messaging/templates";
 
 export async function POST(req: NextRequest) {
   const session = await getSession();
@@ -26,7 +27,8 @@ export async function POST(req: NextRequest) {
 
   const channel = (member.preferredChannel as Channel) || undefined;
   const channelLabel = channel === "whatsapp" ? "WhatsApp" : "SMS";
-  const testMsg = `Hi ${member.name}! This is a test message from your Family Calendar Assistant. If you received this, ${channelLabel} is working correctly for your account.`;
+  const testTpl = await getTemplate("tpl_test_message");
+  const testMsg = interpolate(testTpl, { Name: member.name, Channel: channelLabel });
 
   try {
     const result = await sendMessage(member.phone, testMsg, channel);

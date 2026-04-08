@@ -1,4 +1,4 @@
-export const CURRENT_VERSION = "1.4.4";
+export const CURRENT_VERSION = "1.5.0";
 
 export const REVISION_LOG = [
   {
@@ -172,6 +172,19 @@ export const REVISION_LOG = [
       "Fix: Event creation confirmation now uses preferred messaging channel (was hardcoded to SMS)",
       "Fix: SMS/WhatsApp tag always shown on Message Logs cards (was missing for SMS)",
       "Fix: Reminder cron endpoint now handles GET requests (Vercel cron sends GET, not POST)",
+    ],
+  },
+  {
+    version: "1.5.0",
+    date: "2026-04-08",
+    changes: [
+      "Customizable message templates stored in database, editable from Admin Settings",
+      "AI tone and personality prompts configurable from Admin Settings",
+      "All outgoing messages now use database-backed templates with variable interpolation",
+      "Variable cheat sheet on settings page ([Name], [EventName], [Date], etc.)",
+      "Message Templates, AI Tone, and Cheat Sheet sections are collapsible",
+      "Templates seeded via migration with sensible defaults",
+      "Fix: Cron auth now accepts Vercel cron requests (was returning 401)",
     ],
   },
 ];
