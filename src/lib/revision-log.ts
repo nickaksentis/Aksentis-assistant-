@@ -1,4 +1,4 @@
-export const CURRENT_VERSION = "2.1.3";
+export const CURRENT_VERSION = "2.2.0";
 
 export const REVISION_LOG = [
   {
@@ -242,6 +242,16 @@ export const REVISION_LOG = [
       "Privacy Policy: added messaging frequency and 'message and data rates may apply' section",
       "Terms of Service: added mobile number non-sharing clause",
       "Updated last-modified dates on both legal pages",
+    ],
+  },
+  {
+    version: "2.2.0",
+    date: "2026-04-21",
+    changes: [
+      "Member form: 'Acknowledge message and data rates may apply' checkbox required for SMS channel",
+      "Red error text shown when SMS selected without acknowledgment",
+      "Nick account marked as permanent admin — admin checkbox grayed out and cannot be unchecked",
+      "Privacy Policy and Terms links added to login page (visible when not logged in)",
     ],
   },
 ];

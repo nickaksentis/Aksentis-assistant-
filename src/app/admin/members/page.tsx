@@ -58,6 +58,7 @@ export default function AdminMembersPage() {
     homeLng: "",
     timezone: "America/New_York",
     preferredChannel: "",
+    ratesAcknowledged: false,
   });
   const [error, setError] = useState("");
   const [testingSmsFor, setTestingSmsFor] = useState<number | null>(null);
@@ -81,7 +82,7 @@ export default function AdminMembersPage() {
       .then((data) => {
         if (data.defaultTimezone) {
           setDefaultTz(data.defaultTimezone);
-          setForm((f) => ({ ...f, timezone: data.defaultTimezone }));
+          setForm((f) => ({ ...f, timezone: data.defaultTimezone, ratesAcknowledged: false }));
         }
         if (data.defaultChannel) {
           setDefaultChannel(data.defaultChannel);
@@ -122,9 +123,18 @@ export default function AdminMembersPage() {
     setGeocoding(false);
   }
 
+  function isSmsEffective() {
+    const ch = form.preferredChannel || defaultChannel;
+    return ch === "sms";
+  }
+
   async function handleAdd() {
     setError("");
     setSaveGeoStatus(null);
+    if (isSmsEffective() && !form.ratesAcknowledged) {
+      setError("You must acknowledge that message and data rates may apply to use SMS.");
+      return;
+    }
     const res = await fetch("/api/members", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -136,7 +146,7 @@ export default function AdminMembersPage() {
         setSaveGeoStatus(data.geocodeStatus);
       }
       setShowAdd(false);
-      setForm({ name: "", phone: "", pin: "", isAdmin: false, homeAddress: "", homePlaceId: "", homeLat: "", homeLng: "", timezone: defaultTz, preferredChannel: "" });
+      setForm({ name: "", phone: "", pin: "", isAdmin: false, homeAddress: "", homePlaceId: "", homeLat: "", homeLng: "", timezone: defaultTz, preferredChannel: "", ratesAcknowledged: false });
       loadMembers();
     } else {
       setError(data.error || "Failed to add member");
@@ -146,6 +156,10 @@ export default function AdminMembersPage() {
   async function handleUpdate(id: number) {
     setError("");
     setSaveGeoStatus(null);
+    if (isSmsEffective() && !form.ratesAcknowledged) {
+      setError("You must acknowledge that message and data rates may apply to use SMS.");
+      return;
+    }
     const res = await fetch("/api/members", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -157,7 +171,7 @@ export default function AdminMembersPage() {
         setSaveGeoStatus(data.geocodeStatus);
       }
       setEditingId(null);
-      setForm({ name: "", phone: "", pin: "", isAdmin: false, homeAddress: "", homePlaceId: "", homeLat: "", homeLng: "", timezone: defaultTz, preferredChannel: "" });
+      setForm({ name: "", phone: "", pin: "", isAdmin: false, homeAddress: "", homePlaceId: "", homeLat: "", homeLng: "", timezone: defaultTz, preferredChannel: "", ratesAcknowledged: false });
       loadMembers();
     } else {
       setError(data.error || "Failed to update member");
@@ -197,19 +211,27 @@ export default function AdminMembersPage() {
 
   function startEdit(member: Member) {
     setEditingId(member.id);
+    const channel = member.preferredChannel || "";
     setForm({
       name: member.name,
       phone: member.phone,
       pin: "",
-      isAdmin: member.isAdmin,
+      isAdmin: isPermanentAdmin(member.name) ? true : member.isAdmin,
       homeAddress: member.homeAddress || "",
       homePlaceId: "",
       homeLat: member.homeLat || "",
       homeLng: member.homeLng || "",
       timezone: member.timezone || defaultTz,
-      preferredChannel: member.preferredChannel || "",
+      preferredChannel: channel,
+      ratesAcknowledged: channel === "sms" || (!channel && defaultChannel === "sms"),
     });
     setShowAdd(false);
+  }
+
+  const PERMANENT_ADMIN_NAME = "Nick";
+
+  function isPermanentAdmin(name: string) {
+    return name.toLowerCase().trim() === PERMANENT_ADMIN_NAME.toLowerCase();
   }
 
   return (
@@ -230,7 +252,7 @@ export default function AdminMembersPage() {
             onClick={() => {
               setShowAdd(true);
               setEditingId(null);
-              setForm({ name: "", phone: "", pin: "", isAdmin: false, homeAddress: "", homePlaceId: "", homeLat: "", homeLng: "", timezone: defaultTz, preferredChannel: "" });
+              setForm({ name: "", phone: "", pin: "", isAdmin: false, homeAddress: "", homePlaceId: "", homeLat: "", homeLng: "", timezone: defaultTz, preferredChannel: "", ratesAcknowledged: false });
             }}
           >
             <Plus className="h-4 w-4" />
@@ -384,16 +406,43 @@ export default function AdminMembersPage() {
                 <option value="sms">SMS</option>
                 <option value="whatsapp">WhatsApp</option>
               </select>
+              <div className="mt-2">
+                <label className="flex items-start gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={form.ratesAcknowledged}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, ratesAcknowledged: e.target.checked }))
+                    }
+                    className="mt-0.5"
+                  />
+                  <span>
+                    Acknowledge that message and data rates may apply
+                  </span>
+                </label>
+                {isSmsEffective() && !form.ratesAcknowledged && (
+                  <p className="text-xs text-destructive mt-1 ml-5">
+                    This must be checked to use SMS messaging
+                  </p>
+                )}
+              </div>
             </div>
             <label className="flex items-center gap-2 text-sm">
               <input
                 type="checkbox"
                 checked={form.isAdmin}
+                disabled={isPermanentAdmin(form.name)}
                 onChange={(e) =>
                   setForm((f) => ({ ...f, isAdmin: e.target.checked }))
                 }
+                className="disabled:opacity-50 disabled:cursor-not-allowed"
               />
-              Admin
+              <span className={isPermanentAdmin(form.name) ? "text-muted-foreground" : ""}>
+                Admin
+                {isPermanentAdmin(form.name) && (
+                  <span className="text-xs text-muted-foreground ml-1">(permanent)</span>
+                )}
+              </span>
             </label>
             <div className="flex gap-2">
               <Button

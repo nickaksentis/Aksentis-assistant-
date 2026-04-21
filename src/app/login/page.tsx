@@ -13,6 +13,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { CalendarDays } from "lucide-react";
+import Link from "next/link";
 
 interface Member {
   id: number;
@@ -66,7 +67,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4">
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
           <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
@@ -131,6 +132,16 @@ export default function LoginPage() {
           </form>
         </CardContent>
       </Card>
+
+      <div className="mt-6 flex items-center gap-3 text-xs text-muted-foreground/60">
+        <Link href="/privacy" className="hover:text-muted-foreground transition-colors">
+          Privacy Policy
+        </Link>
+        <span>&middot;</span>
+        <Link href="/terms" className="hover:text-muted-foreground transition-colors">
+          Terms & Conditions
+        </Link>
+      </div>
     </div>
   );
 }
