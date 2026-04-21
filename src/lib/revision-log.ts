@@ -1,4 +1,4 @@
-export const CURRENT_VERSION = "2.2.0";
+export const CURRENT_VERSION = "2.2.1";
 
 export const REVISION_LOG = [
   {
@@ -252,6 +252,19 @@ export const REVISION_LOG = [
       "Red error text shown when SMS selected without acknowledgment",
       "Nick account marked as permanent admin — admin checkbox grayed out and cannot be unchecked",
       "Privacy Policy and Terms links added to login page (visible when not logged in)",
+    ],
+  },
+  {
+    version: "2.2.1",
+    date: "2026-04-21",
+    changes: [
+      "Terms: added Opt-In section with YES keyword",
+      "Terms: expanded Opt-Out section with all keywords (STOP, STOPALL, UNSUBSCRIBE, CANCEL, END, QUIT, OPTOUT, REVOKE)",
+      "Terms: added START keyword for resubscription",
+      "Terms: expanded Help section with HELP and INFO keywords and response message",
+      "Terms: added Sample Messages section with activation, reminder, confirmation, help, and opt-out examples",
+      "Privacy Policy: added Opt-In & Opt-Out section with all keywords",
+      "Privacy Policy: added INFO keyword and email to contact section",
     ],
   },
 ];

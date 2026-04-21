@@ -37,6 +37,25 @@ export default function TermsAndConditions() {
 
           <section>
             <h2 className="text-xl font-semibold mb-3">
+              Opt-In / Consent
+            </h2>
+            <p className="leading-relaxed">
+              End users are manually added to the system by a family
+              administrator through a private admin panel. Upon being added,
+              the member must log in to the portal, select SMS as their
+              messaging channel, and check the &quot;message and data rates may
+              apply&quot; checkbox. The end user then receives an activation text
+              message and must reply <strong>YES</strong> to confirm and
+              activate their account. Only activated members receive messages.
+              No messages are sent to unregistered or unactivated numbers.
+            </p>
+            <p className="leading-relaxed mt-3">
+              <strong>Opt-in keyword:</strong> YES
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-xl font-semibold mb-3">
               Message Frequency
             </h2>
             <p className="leading-relaxed">
@@ -64,12 +83,23 @@ export default function TermsAndConditions() {
           <section>
             <h2 className="text-xl font-semibold mb-3">Opt-Out Instructions</h2>
             <p className="leading-relaxed">
-              You can opt out of receiving SMS messages at any time. To stop
-              receiving messages, reply <strong>STOP</strong> to any text
-              message you receive from Family Calendar Assistant. After
-              sending STOP, you will receive a one-time confirmation message
-              acknowledging your opt-out request. You will no longer receive
-              any further SMS messages from the Service unless you opt back in.
+              You can opt out of receiving SMS messages at any time by replying
+              with any of the following keywords to any message received from
+              Family Calendar Assistant:
+            </p>
+            <p className="leading-relaxed mt-3">
+              <strong>Opt-out keywords:</strong> STOP, STOPALL, UNSUBSCRIBE,
+              CANCEL, END, QUIT, OPTOUT, REVOKE
+            </p>
+            <p className="leading-relaxed mt-3">
+              After sending an opt-out keyword, you will receive a one-time
+              confirmation message: &quot;You have successfully been unsubscribed.
+              You will not receive any more messages from this number. Reply
+              START to resubscribe.&quot;
+            </p>
+            <p className="leading-relaxed mt-3">
+              You will no longer receive any further SMS messages from the
+              Service unless you opt back in by replying <strong>START</strong>.
             </p>
           </section>
 
@@ -79,14 +109,59 @@ export default function TermsAndConditions() {
             </h2>
             <p className="leading-relaxed">
               If you need assistance or have questions about the messaging
-              program, reply <strong>HELP</strong> to any text message
-              received from Family Calendar Assistant. You will receive a
-              response with support information. You may also contact us via
-              email at:
+              program, reply with any of the following keywords to any text
+              message received from Family Calendar Assistant:
+            </p>
+            <p className="leading-relaxed mt-3">
+              <strong>Help keywords:</strong> HELP, INFO
+            </p>
+            <p className="leading-relaxed mt-3">
+              You will receive a response: &quot;Reply STOP to unsubscribe.
+              Msg&amp;Data Rates May Apply.&quot;
+            </p>
+            <p className="leading-relaxed mt-3">
+              You may also contact us via email at:
             </p>
             <p className="leading-relaxed mt-2">
               <strong>Email:</strong> support@aksentis.com
             </p>
+          </section>
+
+          <section>
+            <h2 className="text-xl font-semibold mb-3">
+              Sample Messages
+            </h2>
+            <p className="leading-relaxed mb-3">
+              Below are examples of messages you may receive from Family
+              Calendar Assistant:
+            </p>
+            <ul className="list-disc pl-6 space-y-3">
+              <li>
+                <strong>Activation:</strong> &quot;Welcome to Aksentis Family
+                Calendar! Reply YES to activate your account and start
+                receiving event reminders. Message and data rates may apply.
+                Enter STOP to unsubscribe.&quot;
+              </li>
+              <li>
+                <strong>Event Reminder:</strong> &quot;Reminder: &apos;Dentist
+                Appointment&apos; is tomorrow, Tue Apr 15 at 2:00 PM at Bradenton
+                Family Dentistry. Leave by 1:30 PM to arrive on time!&quot;
+              </li>
+              <li>
+                <strong>Event Confirmation:</strong> &quot;Got it! I&apos;ve added
+                &apos;Soccer Practice&apos; on Sat Apr 19 at 9:00 AM at Lakewood Ranch
+                Park. I&apos;ll send reminders to Nick and Maria.&quot;
+              </li>
+              <li>
+                <strong>Help Response:</strong> &quot;Reply STOP to unsubscribe.
+                Msg&amp;Data Rates May Apply.&quot;
+              </li>
+              <li>
+                <strong>Opt-Out Confirmation:</strong> &quot;You have successfully
+                been unsubscribed. You will not receive any more messages
+                from this number. Reply START to resubscribe.&quot;
+              </li>
+            </ul>
           </section>
 
           <section>

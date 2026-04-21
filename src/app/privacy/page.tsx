@@ -130,6 +130,25 @@ export default function PrivacyPolicy() {
 
           <section>
             <h2 className="text-xl font-semibold mb-3">
+              Opt-In &amp; Opt-Out
+            </h2>
+            <p className="leading-relaxed">
+              You must reply <strong>YES</strong> to an activation message to
+              opt in and begin receiving messages. You may opt out at any time
+              by replying with any of the following keywords:
+              {" "}<strong>STOP</strong>, <strong>STOPALL</strong>,
+              {" "}<strong>UNSUBSCRIBE</strong>, <strong>CANCEL</strong>,
+              {" "}<strong>END</strong>, <strong>QUIT</strong>,
+              {" "}<strong>OPTOUT</strong>, or <strong>REVOKE</strong>.
+            </p>
+            <p className="leading-relaxed mt-3">
+              For help, reply <strong>HELP</strong> or <strong>INFO</strong>.
+              To resubscribe after opting out, reply <strong>START</strong>.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-xl font-semibold mb-3">
               Third-Party Service Providers
             </h2>
             <p className="leading-relaxed">
@@ -164,8 +183,9 @@ export default function PrivacyPolicy() {
             <h2 className="text-xl font-semibold mb-3">Contact</h2>
             <p className="leading-relaxed">
               If you have questions about this privacy policy, please contact
-              us by replying <strong>HELP</strong> to any SMS message received
-              from the Service.
+              us by replying <strong>HELP</strong> or <strong>INFO</strong> to
+              any SMS message received from the Service, or email us at{" "}
+              <strong>support@aksentis.com</strong>.
             </p>
           </section>
         </div>
