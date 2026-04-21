@@ -133,9 +133,32 @@ export default function PrivacyPolicy() {
               Opt-In &amp; Opt-Out
             </h2>
             <p className="leading-relaxed">
-              You must reply <strong>YES</strong> to an activation message to
-              opt in and begin receiving messages. You may opt out at any time
-              by replying with any of the following keywords:
+              Before receiving messages, users must select SMS as their
+              messaging channel and acknowledge that message and data rates
+              may apply, as shown below:
+            </p>
+
+            <div className="my-4 rounded-xl border border-border bg-[#0f1729] p-4 max-w-sm">
+              <p className="text-sm font-medium text-blue-400 mb-2">
+                Messaging Channel
+              </p>
+              <div className="flex h-10 w-full items-center rounded-md border border-blue-500 bg-[#1a2332] px-3 text-sm text-white mb-3">
+                <span className="flex-1">SMS</span>
+                <svg className="h-4 w-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+              </div>
+              <div className="flex items-start gap-2 text-sm text-white">
+                <div className="mt-0.5 h-4 w-4 shrink-0 rounded border border-muted-foreground" />
+                <span>Acknowledge that message and data rates may apply</span>
+              </div>
+              <p className="text-xs text-red-400 mt-1 ml-6">
+                This must be checked to use SMS messaging
+              </p>
+            </div>
+
+            <p className="leading-relaxed">
+              You must then reply <strong>YES</strong> to an activation message
+              to opt in and begin receiving messages. You may opt out at any
+              time by replying with any of the following keywords:
               {" "}<strong>STOP</strong>, <strong>STOPALL</strong>,
               {" "}<strong>UNSUBSCRIBE</strong>, <strong>CANCEL</strong>,
               {" "}<strong>END</strong>, <strong>QUIT</strong>,

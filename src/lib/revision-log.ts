@@ -1,4 +1,4 @@
-export const CURRENT_VERSION = "2.2.1";
+export const CURRENT_VERSION = "2.2.2";
 
 export const REVISION_LOG = [
   {
@@ -265,6 +265,13 @@ export const REVISION_LOG = [
       "Terms: added Sample Messages section with activation, reminder, confirmation, help, and opt-out examples",
       "Privacy Policy: added Opt-In & Opt-Out section with all keywords",
       "Privacy Policy: added INFO keyword and email to contact section",
+    ],
+  },
+  {
+    version: "2.2.2",
+    date: "2026-04-21",
+    changes: [
+      "Terms and Privacy Policy: added inline visual of SMS channel selection and rates acknowledgment checkbox",
     ],
   },
 ];
