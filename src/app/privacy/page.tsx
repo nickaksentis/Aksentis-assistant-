@@ -12,7 +12,7 @@ export default function PrivacyPolicy() {
           Privacy Policy
         </h1>
         <p className="text-sm text-muted-foreground mb-8">
-          Last updated: April 6, 2026
+          Last updated: April 21, 2026
         </p>
 
         <div className="prose prose-neutral max-w-none space-y-6 text-foreground">
@@ -99,6 +99,32 @@ export default function PrivacyPolicy() {
               Your data is never used for advertising, analytics, or any
               purpose unrelated to the calendar reminder service described
               above.
+            </p>
+            <p className="leading-relaxed mt-3">
+              <strong>
+                Mobile phone numbers will not be shared with third parties
+                for promotional or marketing purposes.
+              </strong>
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-xl font-semibold mb-3">
+              Messaging Frequency &amp; Rates
+            </h2>
+            <p className="leading-relaxed">
+              Message frequency varies based on the number of calendar events
+              and reminder preferences configured for your account. You may
+              receive event reminders, confirmation messages, and
+              conversational replies when interacting with the assistant.
+              Typically, you can expect between 1 and 20 messages per month
+              depending on calendar activity.
+            </p>
+            <p className="leading-relaxed mt-3">
+              <strong>Message and data rates may apply.</strong> Any charges
+              incurred for text messages are your responsibility and are
+              determined by your mobile carrier and wireless plan. Contact
+              your carrier for pricing details.
             </p>
           </section>
 

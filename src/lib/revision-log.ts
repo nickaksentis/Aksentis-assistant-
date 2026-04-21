@@ -1,4 +1,4 @@
-export const CURRENT_VERSION = "2.1.2";
+export const CURRENT_VERSION = "2.1.3";
 
 export const REVISION_LOG = [
   {
@@ -232,6 +232,16 @@ export const REVISION_LOG = [
     date: "2026-04-08",
     changes: [
       "Fix: Inbound messages now show member name instead of phone number on Usage & Logs page",
+    ],
+  },
+  {
+    version: "2.1.3",
+    date: "2026-04-21",
+    changes: [
+      "Privacy Policy: added mobile numbers not shared with third parties disclosure",
+      "Privacy Policy: added messaging frequency and 'message and data rates may apply' section",
+      "Terms of Service: added mobile number non-sharing clause",
+      "Updated last-modified dates on both legal pages",
     ],
   },
 ];

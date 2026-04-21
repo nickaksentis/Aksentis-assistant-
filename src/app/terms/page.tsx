@@ -12,7 +12,7 @@ export default function TermsAndConditions() {
           Terms and Conditions
         </h1>
         <p className="text-sm text-muted-foreground mb-8">
-          Last updated: April 6, 2026
+          Last updated: April 21, 2026
         </p>
 
         <div className="prose prose-neutral max-w-none space-y-6 text-foreground">
@@ -115,6 +115,8 @@ export default function TermsAndConditions() {
               for details on how we collect, use, and protect your
               information. We do not sell, share, or distribute your personal
               information to third parties for marketing purposes.
+              Mobile phone numbers will not be shared with third parties for
+              promotional or marketing purposes.
             </p>
           </section>
 
