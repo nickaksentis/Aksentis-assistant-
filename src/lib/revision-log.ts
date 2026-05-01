@@ -1,4 +1,4 @@
-export const CURRENT_VERSION = "2.3.0";
+export const CURRENT_VERSION = "2.3.1";
 
 export const REVISION_LOG = [
   {
@@ -292,6 +292,15 @@ export const REVISION_LOG = [
       "Non-admin users with canManageMembers cannot modify admin status or permission flags",
       "Database migration: can_manage_locations, can_manage_events, can_manage_members columns on family_members",
       "Session extended with permission fields, populated at login",
+    ],
+  },
+  {
+    version: "2.3.1",
+    date: "2026-04-21",
+    changes: [
+      "Login page: replaced pre-filled name buttons with a text input field",
+      "Login API: accepts name (case-insensitive) instead of memberId for authentication",
+      "Login page no longer fetches member list, improving privacy",
     ],
   },
 ];

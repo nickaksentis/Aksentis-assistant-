@@ -2,21 +2,28 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { familyMembers } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
 export async function POST(req: NextRequest) {
-  const { memberId, pin } = await req.json();
+  const { memberId, name, pin } = await req.json();
 
-  if (!memberId || !pin) {
+  if ((!memberId && !name?.trim()) || !pin) {
     return NextResponse.json(
-      { error: "Member and PIN are required" },
+      { error: "Name and password are required" },
       { status: 400 }
     );
   }
 
-  const member = await db.query.familyMembers.findFirst({
-    where: eq(familyMembers.id, Number(memberId)),
-  });
+  let member;
+  if (memberId) {
+    member = await db.query.familyMembers.findFirst({
+      where: eq(familyMembers.id, Number(memberId)),
+    });
+  } else {
+    member = await db.query.familyMembers.findFirst({
+      where: sql`lower(${familyMembers.name}) = lower(${name.trim()})`,
+    });
+  }
 
   if (!member || member.pin !== pin) {
     return NextResponse.json({ error: "Invalid password" }, { status: 401 });

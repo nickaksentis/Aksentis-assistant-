@@ -15,25 +15,15 @@ import {
 import { CalendarDays } from "lucide-react";
 import Link from "next/link";
 
-interface Member {
-  id: number;
-  name: string;
-}
-
 export default function LoginPage() {
   const router = useRouter();
-  const [members, setMembers] = useState<Member[]>([]);
-  const [selectedMember, setSelectedMember] = useState<number | null>(null);
+  const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [siteName, setSiteName] = useState("Family Calendar");
 
   useEffect(() => {
-    fetch("/api/members")
-      .then((res) => res.json())
-      .then(setMembers)
-      .catch(() => setError("Failed to load family members"));
     fetch("/api/settings")
       .then((res) => res.json())
       .then((data) => {
@@ -44,8 +34,8 @@ export default function LoginPage() {
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
-    if (!selectedMember) {
-      setError("Please select a family member");
+    if (!name.trim()) {
+      setError("Please enter your name");
       return;
     }
     setLoading(true);
@@ -54,7 +44,7 @@ export default function LoginPage() {
     const res = await fetch("/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ memberId: selectedMember, pin: password }),
+      body: JSON.stringify({ name: name.trim(), pin: password }),
     });
 
     if (res.ok) {
@@ -75,36 +65,23 @@ export default function LoginPage() {
           </div>
           <CardTitle>{siteName}</CardTitle>
           <CardDescription>
-            Select your name and enter your password
+            Enter your name and password to sign in
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
-              <Label>Who are you?</Label>
-              <div className="grid grid-cols-2 gap-2">
-                {members.map((member) => (
-                  <Button
-                    key={member.id}
-                    type="button"
-                    variant={
-                      selectedMember === member.id ? "default" : "outline"
-                    }
-                    className="w-full"
-                    onClick={() => {
-                      setSelectedMember(member.id);
-                      setError("");
-                    }}
-                  >
-                    {member.name}
-                  </Button>
-                ))}
-              </div>
-              {members.length === 0 && !error && (
-                <p className="text-sm text-muted-foreground text-center py-2">
-                  Loading...
-                </p>
-              )}
+              <Label htmlFor="name">Name</Label>
+              <Input
+                id="name"
+                type="text"
+                placeholder="Enter your name"
+                value={name}
+                onChange={(e) => {
+                  setName(e.target.value);
+                  setError("");
+                }}
+              />
             </div>
 
             <div className="space-y-2">
@@ -125,7 +102,7 @@ export default function LoginPage() {
             <Button
               type="submit"
               className="w-full"
-              disabled={!selectedMember || !password || loading}
+              disabled={!name.trim() || !password || loading}
             >
               {loading ? "Signing in..." : "Sign In"}
             </Button>
