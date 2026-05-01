@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { familyMembers } from "@/lib/db/schema";
-import { getSession } from "@/lib/auth";
+import { checkPermission } from "@/lib/permissions";
 
 export async function GET() {
-  const session = await getSession();
-  if (!session.isLoggedIn || !session.isAdmin) {
+  const session = await checkPermission("members");
+  if (!session) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -23,6 +23,9 @@ export async function GET() {
       homeLng: familyMembers.homeLng,
       timezone: familyMembers.timezone,
       preferredChannel: familyMembers.preferredChannel,
+      canManageLocations: familyMembers.canManageLocations,
+      canManageEvents: familyMembers.canManageEvents,
+      canManageMembers: familyMembers.canManageMembers,
       createdAt: familyMembers.createdAt,
     })
     .from(familyMembers);

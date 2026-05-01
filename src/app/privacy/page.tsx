@@ -134,11 +134,11 @@ export default function PrivacyPolicy() {
             </h2>
             <p className="leading-relaxed">
               Before receiving messages, users must select SMS as their
-              messaging channel and acknowledge that message and data rates
-              may apply, as shown below:
+              messaging channel and complete the required consent checkboxes,
+              as shown below:
             </p>
 
-            <div className="my-4 rounded-xl border border-border bg-[#0f1729] p-4 max-w-sm">
+            <div className="my-4 rounded-xl border border-border bg-[#0f1729] p-4 max-w-md">
               <p className="text-sm font-medium text-blue-400 mb-2">
                 Messaging Channel
               </p>
@@ -146,13 +146,40 @@ export default function PrivacyPolicy() {
                 <span className="flex-1">SMS</span>
                 <svg className="h-4 w-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
               </div>
-              <div className="flex items-start gap-2 text-sm text-white">
-                <div className="mt-0.5 h-4 w-4 shrink-0 rounded border border-muted-foreground" />
-                <span>Acknowledge that message and data rates may apply</span>
+              <div className="space-y-2">
+                <div>
+                  <div className="flex items-start gap-2 text-sm text-white">
+                    <div className="mt-0.5 h-4 w-4 shrink-0 rounded border border-muted-foreground" />
+                    <span className="leading-snug text-xs">
+                      I consent to receive non-marketing text messages from
+                      Family Calendar regarding event details. Message frequency
+                      varies, message and data rates may apply. Reply HELP for
+                      assistance, reply STOP to opt out.
+                    </span>
+                  </div>
+                  <p className="text-xs text-red-400 mt-0.5 ml-6">Required for SMS</p>
+                </div>
+                <div>
+                  <div className="flex items-start gap-2 text-sm text-white">
+                    <div className="mt-0.5 h-4 w-4 shrink-0 rounded border border-muted-foreground" />
+                    <span className="text-xs">
+                      I agree to the Family Calendar{" "}
+                      <span className="text-blue-400 underline">Privacy Policy</span>
+                    </span>
+                  </div>
+                  <p className="text-xs text-red-400 mt-0.5 ml-6">Required for SMS</p>
+                </div>
+                <div>
+                  <div className="flex items-start gap-2 text-sm text-white">
+                    <div className="mt-0.5 h-4 w-4 shrink-0 rounded border border-muted-foreground" />
+                    <span className="text-xs">
+                      I agree to the Family Calendar{" "}
+                      <span className="text-blue-400 underline">Terms of Service</span>
+                    </span>
+                  </div>
+                  <p className="text-xs text-red-400 mt-0.5 ml-6">Required for SMS</p>
+                </div>
               </div>
-              <p className="text-xs text-red-400 mt-1 ml-6">
-                This must be checked to use SMS messaging
-              </p>
             </div>
 
             <p className="leading-relaxed">

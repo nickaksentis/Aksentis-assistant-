@@ -27,5 +27,8 @@ export async function GET() {
     memberName: session.memberName,
     isAdmin: session.isAdmin,
     timezone,
+    canManageLocations: session.canManageLocations || false,
+    canManageEvents: session.canManageEvents || false,
+    canManageMembers: session.canManageMembers || false,
   });
 }

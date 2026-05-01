@@ -35,6 +35,10 @@ const alterMigrations = [
   `ALTER TABLE family_members ADD COLUMN preferred_channel TEXT`,
   // v1.4.1
   `ALTER TABLE sms_log ADD COLUMN channel TEXT`,
+  // v2.3.0 - Role-based permissions
+  `ALTER TABLE family_members ADD COLUMN can_manage_locations INTEGER NOT NULL DEFAULT 0`,
+  `ALTER TABLE family_members ADD COLUMN can_manage_events INTEGER NOT NULL DEFAULT 0`,
+  `ALTER TABLE family_members ADD COLUMN can_manage_members INTEGER NOT NULL DEFAULT 0`,
 ];
 
 // Check if migrations are needed (compare stored schema version to app version)

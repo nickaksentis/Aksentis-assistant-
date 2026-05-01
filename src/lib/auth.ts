@@ -6,6 +6,9 @@ export interface SessionData {
   memberName: string;
   isAdmin: boolean;
   isLoggedIn: boolean;
+  canManageLocations: boolean;
+  canManageEvents: boolean;
+  canManageMembers: boolean;
 }
 
 const sessionOptions: SessionOptions = {

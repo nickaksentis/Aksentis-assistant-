@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,6 +21,9 @@ interface Member {
   homeLng: string | null;
   timezone: string | null;
   preferredChannel: string | null;
+  canManageLocations: boolean;
+  canManageEvents: boolean;
+  canManageMembers: boolean;
 }
 
 const TIMEZONE_OPTIONS = [
@@ -41,6 +45,8 @@ const TIMEZONE_OPTIONS = [
 ];
 
 export default function AdminMembersPage() {
+  const router = useRouter();
+  const [callerIsAdmin, setCallerIsAdmin] = useState(false);
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
@@ -58,7 +64,12 @@ export default function AdminMembersPage() {
     homeLng: "",
     timezone: "America/New_York",
     preferredChannel: "",
-    ratesAcknowledged: false,
+    consentMessages: false,
+    consentPrivacy: false,
+    consentTerms: false,
+    canManageLocations: false,
+    canManageEvents: false,
+    canManageMembers: false,
   });
   const [error, setError] = useState("");
   const [testingSmsFor, setTestingSmsFor] = useState<number | null>(null);
@@ -76,20 +87,30 @@ export default function AdminMembersPage() {
   }
 
   useEffect(() => {
+    fetch("/api/auth/me")
+      .then((r) => r.json())
+      .then((data) => {
+        if (!data.isLoggedIn || (!data.isAdmin && !data.canManageMembers)) {
+          router.push("/");
+          return;
+        }
+        setCallerIsAdmin(data.isAdmin);
+      })
+      .catch(() => router.push("/"));
     loadMembers();
     fetch("/api/settings")
       .then((res) => res.json())
       .then((data) => {
         if (data.defaultTimezone) {
           setDefaultTz(data.defaultTimezone);
-          setForm((f) => ({ ...f, timezone: data.defaultTimezone, ratesAcknowledged: false }));
+          setForm((f) => ({ ...f, timezone: data.defaultTimezone }));
         }
         if (data.defaultChannel) {
           setDefaultChannel(data.defaultChannel);
         }
       })
       .catch(() => {});
-  }, []);
+  }, [router]);
 
   async function testGeocode() {
     if (!form.homeAddress.trim()) {
@@ -128,13 +149,19 @@ export default function AdminMembersPage() {
     return ch === "sms";
   }
 
+  function validateConsent(): string | null {
+    if (!isSmsEffective()) return null;
+    if (!form.consentMessages) return "You must consent to receiving text messages to use SMS.";
+    if (!form.consentPrivacy) return "You must agree to the Privacy Policy to use SMS.";
+    if (!form.consentTerms) return "You must agree to the Terms of Service to use SMS.";
+    return null;
+  }
+
   async function handleAdd() {
     setError("");
     setSaveGeoStatus(null);
-    if (isSmsEffective() && !form.ratesAcknowledged) {
-      setError("You must acknowledge that message and data rates may apply to use SMS.");
-      return;
-    }
+    const consentError = validateConsent();
+    if (consentError) { setError(consentError); return; }
     const res = await fetch("/api/members", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -146,7 +173,7 @@ export default function AdminMembersPage() {
         setSaveGeoStatus(data.geocodeStatus);
       }
       setShowAdd(false);
-      setForm({ name: "", phone: "", pin: "", isAdmin: false, homeAddress: "", homePlaceId: "", homeLat: "", homeLng: "", timezone: defaultTz, preferredChannel: "", ratesAcknowledged: false });
+      setForm({ name: "", phone: "", pin: "", isAdmin: false, homeAddress: "", homePlaceId: "", homeLat: "", homeLng: "", timezone: defaultTz, preferredChannel: "", consentMessages: false, consentPrivacy: false, consentTerms: false, canManageLocations: false, canManageEvents: false, canManageMembers: false });
       loadMembers();
     } else {
       setError(data.error || "Failed to add member");
@@ -156,10 +183,8 @@ export default function AdminMembersPage() {
   async function handleUpdate(id: number) {
     setError("");
     setSaveGeoStatus(null);
-    if (isSmsEffective() && !form.ratesAcknowledged) {
-      setError("You must acknowledge that message and data rates may apply to use SMS.");
-      return;
-    }
+    const consentError = validateConsent();
+    if (consentError) { setError(consentError); return; }
     const res = await fetch("/api/members", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -171,7 +196,7 @@ export default function AdminMembersPage() {
         setSaveGeoStatus(data.geocodeStatus);
       }
       setEditingId(null);
-      setForm({ name: "", phone: "", pin: "", isAdmin: false, homeAddress: "", homePlaceId: "", homeLat: "", homeLng: "", timezone: defaultTz, preferredChannel: "", ratesAcknowledged: false });
+      setForm({ name: "", phone: "", pin: "", isAdmin: false, homeAddress: "", homePlaceId: "", homeLat: "", homeLng: "", timezone: defaultTz, preferredChannel: "", consentMessages: false, consentPrivacy: false, consentTerms: false, canManageLocations: false, canManageEvents: false, canManageMembers: false });
       loadMembers();
     } else {
       setError(data.error || "Failed to update member");
@@ -223,7 +248,12 @@ export default function AdminMembersPage() {
       homeLng: member.homeLng || "",
       timezone: member.timezone || defaultTz,
       preferredChannel: channel,
-      ratesAcknowledged: channel === "sms" || (!channel && defaultChannel === "sms"),
+      consentMessages: channel === "sms" || (!channel && defaultChannel === "sms"),
+      consentPrivacy: channel === "sms" || (!channel && defaultChannel === "sms"),
+      consentTerms: channel === "sms" || (!channel && defaultChannel === "sms"),
+      canManageLocations: member.canManageLocations,
+      canManageEvents: member.canManageEvents,
+      canManageMembers: member.canManageMembers,
     });
     setShowAdd(false);
   }
@@ -239,7 +269,7 @@ export default function AdminMembersPage() {
       <div className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur">
         <div className="mx-auto max-w-lg flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-3">
-            <Link href="/admin">
+            <Link href={callerIsAdmin ? "/admin" : "/"}>
               <Button variant="ghost" size="icon">
                 <ArrowLeft className="h-5 w-5" />
               </Button>
@@ -252,7 +282,7 @@ export default function AdminMembersPage() {
             onClick={() => {
               setShowAdd(true);
               setEditingId(null);
-              setForm({ name: "", phone: "", pin: "", isAdmin: false, homeAddress: "", homePlaceId: "", homeLat: "", homeLng: "", timezone: defaultTz, preferredChannel: "", ratesAcknowledged: false });
+              setForm({ name: "", phone: "", pin: "", isAdmin: false, homeAddress: "", homePlaceId: "", homeLat: "", homeLng: "", timezone: defaultTz, preferredChannel: "", consentMessages: false, consentPrivacy: false, consentTerms: false, canManageLocations: false, canManageEvents: false, canManageMembers: false });
             }}
           >
             <Plus className="h-4 w-4" />
@@ -406,44 +436,116 @@ export default function AdminMembersPage() {
                 <option value="sms">SMS</option>
                 <option value="whatsapp">WhatsApp</option>
               </select>
-              <div className="mt-2">
+              <div className="mt-3 space-y-2">
                 <label className="flex items-start gap-2 text-sm">
                   <input
                     type="checkbox"
-                    checked={form.ratesAcknowledged}
+                    checked={form.consentMessages}
                     onChange={(e) =>
-                      setForm((f) => ({ ...f, ratesAcknowledged: e.target.checked }))
+                      setForm((f) => ({ ...f, consentMessages: e.target.checked }))
+                    }
+                    className="mt-0.5"
+                  />
+                  <span className="leading-snug">
+                    I consent to receive non-marketing text messages from Family
+                    Calendar regarding event details. Message frequency varies,
+                    message and data rates may apply. Reply HELP for assistance,
+                    reply STOP to opt out.
+                  </span>
+                </label>
+                {isSmsEffective() && !form.consentMessages && (
+                  <p className="text-xs text-destructive ml-5">Required for SMS</p>
+                )}
+
+                <label className="flex items-start gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={form.consentPrivacy}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, consentPrivacy: e.target.checked }))
                     }
                     className="mt-0.5"
                   />
                   <span>
-                    Acknowledge that message and data rates may apply
+                    I agree to the Family Calendar{" "}
+                    <a href="/privacy" target="_blank" className="text-primary underline hover:text-primary/80">
+                      Privacy Policy
+                    </a>
                   </span>
                 </label>
-                {isSmsEffective() && !form.ratesAcknowledged && (
-                  <p className="text-xs text-destructive mt-1 ml-5">
-                    This must be checked to use SMS messaging
-                  </p>
+                {isSmsEffective() && !form.consentPrivacy && (
+                  <p className="text-xs text-destructive ml-5">Required for SMS</p>
+                )}
+
+                <label className="flex items-start gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={form.consentTerms}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, consentTerms: e.target.checked }))
+                    }
+                    className="mt-0.5"
+                  />
+                  <span>
+                    I agree to the Family Calendar{" "}
+                    <a href="/terms" target="_blank" className="text-primary underline hover:text-primary/80">
+                      Terms of Service
+                    </a>
+                  </span>
+                </label>
+                {isSmsEffective() && !form.consentTerms && (
+                  <p className="text-xs text-destructive ml-5">Required for SMS</p>
                 )}
               </div>
             </div>
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={form.isAdmin}
-                disabled={isPermanentAdmin(form.name)}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, isAdmin: e.target.checked }))
-                }
-                className="disabled:opacity-50 disabled:cursor-not-allowed"
-              />
-              <span className={isPermanentAdmin(form.name) ? "text-muted-foreground" : ""}>
-                Admin
-                {isPermanentAdmin(form.name) && (
-                  <span className="text-xs text-muted-foreground ml-1">(permanent)</span>
-                )}
-              </span>
-            </label>
+            {callerIsAdmin && (
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={form.isAdmin}
+                  disabled={isPermanentAdmin(form.name)}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, isAdmin: e.target.checked }))
+                  }
+                  className="disabled:opacity-50 disabled:cursor-not-allowed"
+                />
+                <span className={isPermanentAdmin(form.name) ? "text-muted-foreground" : ""}>
+                  Admin
+                  {isPermanentAdmin(form.name) && (
+                    <span className="text-xs text-muted-foreground ml-1">(permanent)</span>
+                  )}
+                </span>
+              </label>
+            )}
+            {callerIsAdmin && !form.isAdmin && (
+              <div className="rounded-lg border border-border/50 p-3 space-y-2">
+                <p className="text-xs font-medium text-muted-foreground">Page Access</p>
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={form.canManageLocations}
+                    onChange={(e) => setForm((f) => ({ ...f, canManageLocations: e.target.checked }))}
+                  />
+                  Saved Locations
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={form.canManageEvents}
+                    onChange={(e) => setForm((f) => ({ ...f, canManageEvents: e.target.checked }))}
+                  />
+                  Manage Events
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={form.canManageMembers}
+                    onChange={(e) => setForm((f) => ({ ...f, canManageMembers: e.target.checked }))}
+                  />
+                  Manage Members
+                </label>
+              </div>
+            )}
             <div className="flex gap-2">
               <Button
                 size="sm"

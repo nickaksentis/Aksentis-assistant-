@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { familyMembers, smsLog, activityLog } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { getSession } from "@/lib/auth";
+import { checkPermission } from "@/lib/permissions";
 import { sendMessage, type Channel } from "@/lib/messaging/send";
 import { getTemplate, interpolate } from "@/lib/messaging/templates";
 
@@ -14,15 +15,15 @@ export async function GET() {
   return NextResponse.json(members);
 }
 
-// Admin: create a new family member
 export async function POST(req: NextRequest) {
-  const session = await getSession();
-  if (!session.isLoggedIn || !session.isAdmin) {
+  const session = await checkPermission("members");
+  if (!session) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const { name, phone, pin, isAdmin, homeAddress, homePlaceId, homeLat: manualLat, homeLng: manualLng, timezone, preferredChannel } =
+  const { name, phone, pin, isAdmin: reqIsAdmin, homeAddress, homePlaceId, homeLat: manualLat, homeLng: manualLng, timezone, preferredChannel, canManageLocations, canManageEvents, canManageMembers } =
     await req.json();
+  const isAdmin = session.isAdmin ? (reqIsAdmin || false) : false;
   if (!name?.trim() || !phone?.trim() || !pin?.trim()) {
     return NextResponse.json(
       { error: "Name, phone, and password are required" },
@@ -80,14 +81,17 @@ export async function POST(req: NextRequest) {
       name: name.trim(),
       phone: phone.trim(),
       pin: pin.trim(),
-      isAdmin: isAdmin || false,
-      isActive: false, // New members start inactive until they reply YES
+      isAdmin,
+      isActive: false,
       timezone: timezone || null,
       homeAddress: homeAddress?.trim() || null,
       homePlaceId: homePlaceId || null,
       homeLat,
       homeLng,
       preferredChannel: preferredChannel || null,
+      canManageLocations: session.isAdmin ? (canManageLocations || false) : false,
+      canManageEvents: session.isAdmin ? (canManageEvents || false) : false,
+      canManageMembers: session.isAdmin ? (canManageMembers || false) : false,
     })
     .returning();
 
@@ -122,14 +126,13 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({ ...member, geocodeStatus }, { status: 201 });
 }
 
-// Admin: update a family member
 export async function PUT(req: NextRequest) {
-  const session = await getSession();
-  if (!session.isLoggedIn || !session.isAdmin) {
+  const session = await checkPermission("members");
+  if (!session) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const { id, name, phone, pin, isAdmin, homeAddress, homePlaceId, homeLat: manualLat, homeLng: manualLng, timezone, preferredChannel } =
+  const { id, name, phone, pin, isAdmin, homeAddress, homePlaceId, homeLat: manualLat, homeLng: manualLng, timezone, preferredChannel, canManageLocations, canManageEvents, canManageMembers } =
     await req.json();
   if (!id) {
     return NextResponse.json({ error: "ID is required" }, { status: 400 });
@@ -147,7 +150,10 @@ export async function PUT(req: NextRequest) {
   if (name?.trim()) updates.name = name.trim();
   if (phone?.trim()) updates.phone = phone.trim();
   if (pin?.trim()) updates.pin = pin.trim();
-  if (typeof isAdmin === "boolean") updates.isAdmin = isAdmin;
+  if (session.isAdmin && typeof isAdmin === "boolean") updates.isAdmin = isAdmin;
+  if (session.isAdmin && typeof canManageLocations === "boolean") updates.canManageLocations = canManageLocations;
+  if (session.isAdmin && typeof canManageEvents === "boolean") updates.canManageEvents = canManageEvents;
+  if (session.isAdmin && typeof canManageMembers === "boolean") updates.canManageMembers = canManageMembers;
   if (homeAddress !== undefined)
     updates.homeAddress = homeAddress?.trim() || null;
   if (homePlaceId !== undefined) updates.homePlaceId = homePlaceId || null;
@@ -232,10 +238,9 @@ export async function PUT(req: NextRequest) {
   return NextResponse.json({ ...updated, geocodeStatus });
 }
 
-// Admin: delete a family member
 export async function DELETE(req: NextRequest) {
-  const session = await getSession();
-  if (!session.isLoggedIn || !session.isAdmin) {
+  const session = await checkPermission("members");
+  if (!session) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

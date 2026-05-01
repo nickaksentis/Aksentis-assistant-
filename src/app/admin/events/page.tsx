@@ -22,6 +22,7 @@ interface EventData {
 
 export default function AdminEventsPage() {
   const router = useRouter();
+  const [isAdmin, setIsAdmin] = useState(false);
   const [events, setEvents] = useState<EventData[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -35,8 +36,18 @@ export default function AdminEventsPage() {
   }
 
   useEffect(() => {
+    fetch("/api/auth/me")
+      .then((r) => r.json())
+      .then((data) => {
+        if (!data.isLoggedIn || (!data.isAdmin && !data.canManageEvents)) {
+          router.push("/");
+          return;
+        }
+        setIsAdmin(data.isAdmin);
+      })
+      .catch(() => router.push("/"));
     loadEvents();
-  }, []);
+  }, [router]);
 
   async function handleDelete(id: number) {
     if (!confirm("Delete this event?")) return;
@@ -59,7 +70,7 @@ export default function AdminEventsPage() {
     <div className="min-h-screen bg-background">
       <div className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur">
         <div className="mx-auto max-w-lg flex items-center gap-3 px-4 py-3">
-          <Link href="/admin">
+          <Link href={isAdmin ? "/admin" : "/"}>
             <Button variant="ghost" size="icon">
               <ArrowLeft className="h-5 w-5" />
             </Button>

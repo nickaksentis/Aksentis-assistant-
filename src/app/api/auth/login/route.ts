@@ -37,6 +37,9 @@ export async function POST(req: NextRequest) {
   session.memberName = member.name;
   session.isAdmin = member.isAdmin;
   session.isLoggedIn = true;
+  session.canManageLocations = member.isAdmin || member.canManageLocations;
+  session.canManageEvents = member.isAdmin || member.canManageEvents;
+  session.canManageMembers = member.isAdmin || member.canManageMembers;
   await session.save();
 
   return NextResponse.json({ success: true, name: member.name });

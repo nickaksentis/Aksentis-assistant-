@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -36,6 +37,8 @@ const LOCATION_TYPES = [
 ];
 
 export default function AdminLocationsPage() {
+  const router = useRouter();
+  const [isAdmin, setIsAdmin] = useState(false);
   const [locations, setLocations] = useState<SavedLocation[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
@@ -59,8 +62,18 @@ export default function AdminLocationsPage() {
   }
 
   useEffect(() => {
+    fetch("/api/auth/me")
+      .then((r) => r.json())
+      .then((data) => {
+        if (!data.isLoggedIn || (!data.isAdmin && !data.canManageLocations)) {
+          router.push("/");
+          return;
+        }
+        setIsAdmin(data.isAdmin);
+      })
+      .catch(() => router.push("/"));
     loadLocations();
-  }, []);
+  }, [router]);
 
   async function handleAdd() {
     setError("");
@@ -128,7 +141,7 @@ export default function AdminLocationsPage() {
       <div className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur">
         <div className="mx-auto max-w-lg flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-3">
-            <Link href="/admin">
+            <Link href={isAdmin ? "/admin" : "/"}>
               <Button variant="ghost" size="icon">
                 <ArrowLeft className="h-5 w-5" />
               </Button>

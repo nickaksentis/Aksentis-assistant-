@@ -1,4 +1,4 @@
-export const CURRENT_VERSION = "2.2.2";
+export const CURRENT_VERSION = "2.3.0";
 
 export const REVISION_LOG = [
   {
@@ -272,6 +272,26 @@ export const REVISION_LOG = [
     date: "2026-04-21",
     changes: [
       "Terms and Privacy Policy: added inline visual of SMS channel selection and rates acknowledgment checkbox",
+    ],
+  },
+  {
+    version: "2.3.0",
+    date: "2026-04-21",
+    changes: [
+      "Consent checkboxes reworded: message consent, Privacy Policy agreement (linked), Terms of Service agreement (linked)",
+      "All three consent checkboxes required when SMS is the effective messaging channel",
+      "Privacy Policy and Terms inline visuals updated to show three-checkbox layout",
+      "Role-based page access: per-user permissions for Saved Locations, Manage Events, and Manage Members",
+      "Admin member form: Page Access checkboxes (shown only for non-admin users, only editable by admins)",
+      "New /profile page for non-admin users to edit their own profile (name, phone, password, address, timezone, channel)",
+      "New /api/profile endpoint for self-service profile GET and PUT",
+      "Home page navigation updated: My Profile link always visible, Locations/Events/Members links shown based on permissions",
+      "Admin dashboard (/admin) link only shown to admin users",
+      "Admin sub-pages (locations, events, members) accessible to permissioned non-admin users with dynamic back links",
+      "API-level permission checks: admin routes accept users with matching page access permissions",
+      "Non-admin users with canManageMembers cannot modify admin status or permission flags",
+      "Database migration: can_manage_locations, can_manage_events, can_manage_members columns on family_members",
+      "Session extended with permission fields, populated at login",
     ],
   },
 ];

@@ -13,6 +13,9 @@ export const familyMembers = sqliteTable("family_members", {
   homeLat: text("home_lat"),
   homeLng: text("home_lng"),
   preferredChannel: text("preferred_channel"),
+  canManageLocations: integer("can_manage_locations", { mode: "boolean" }).notNull().default(false),
+  canManageEvents: integer("can_manage_events", { mode: "boolean" }).notNull().default(false),
+  canManageMembers: integer("can_manage_members", { mode: "boolean" }).notNull().default(false),
   createdAt: text("created_at")
     .notNull()
     .$defaultFn(() => new Date().toISOString()),

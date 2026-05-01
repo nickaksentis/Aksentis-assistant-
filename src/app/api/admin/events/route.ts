@@ -1,13 +1,12 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { events } from "@/lib/db/schema";
-import { getSession } from "@/lib/auth";
+import { checkPermission } from "@/lib/permissions";
 import { desc } from "drizzle-orm";
 
-// Admin-only: returns all events with creator and reminder info
 export async function GET() {
-  const session = await getSession();
-  if (!session.isLoggedIn || !session.isAdmin) {
+  const session = await checkPermission("events");
+  if (!session) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

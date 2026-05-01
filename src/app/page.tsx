@@ -3,12 +3,25 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CalendarPlus, CalendarDays, Settings, LogOut } from "lucide-react";
+import { CalendarPlus, CalendarDays, Settings, LogOut, User, MapPin, Users } from "lucide-react";
+
+interface UserPerms {
+  isAdmin: boolean;
+  canManageLocations: boolean;
+  canManageEvents: boolean;
+  canManageMembers: boolean;
+}
 
 export default function Home() {
   const router = useRouter();
   const [siteName, setSiteName] = useState("Family Calendar");
   const [siteSlogan, setSiteSlogan] = useState("Keep everyone on the same page");
+  const [perms, setPerms] = useState<UserPerms>({
+    isAdmin: false,
+    canManageLocations: false,
+    canManageEvents: false,
+    canManageMembers: false,
+  });
 
   useEffect(() => {
     fetch("/api/settings")
@@ -16,6 +29,19 @@ export default function Home() {
       .then((data) => {
         if (data.siteName) setSiteName(data.siteName);
         if (data.siteSlogan) setSiteSlogan(data.siteSlogan);
+      })
+      .catch(() => {});
+    fetch("/api/auth/me")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.isLoggedIn) {
+          setPerms({
+            isAdmin: data.isAdmin,
+            canManageLocations: data.canManageLocations || false,
+            canManageEvents: data.canManageEvents || false,
+            canManageMembers: data.canManageMembers || false,
+          });
+        }
       })
       .catch(() => {});
   }, []);
@@ -51,14 +77,50 @@ export default function Home() {
         </Link>
       </div>
 
-      <div className="mt-8 flex items-center gap-4">
+      <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
         <Link
-          href="/admin"
-          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          href="/profile"
+          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
-          <Settings className="h-4 w-4" />
-          Admin
+          <User className="h-4 w-4" />
+          My Profile
         </Link>
+        {(perms.isAdmin || perms.canManageLocations) && (
+          <Link
+            href="/admin/locations"
+            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <MapPin className="h-4 w-4" />
+            Locations
+          </Link>
+        )}
+        {(perms.isAdmin || perms.canManageEvents) && (
+          <Link
+            href="/admin/events"
+            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <CalendarDays className="h-4 w-4" />
+            All Events
+          </Link>
+        )}
+        {(perms.isAdmin || perms.canManageMembers) && (
+          <Link
+            href="/admin/members"
+            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <Users className="h-4 w-4" />
+            Members
+          </Link>
+        )}
+        {perms.isAdmin && (
+          <Link
+            href="/admin"
+            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <Settings className="h-4 w-4" />
+            Admin
+          </Link>
+        )}
         <button
           onClick={handleLogout}
           className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"

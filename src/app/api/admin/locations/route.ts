@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { savedLocations, activityLog } from "@/lib/db/schema";
-import { getSession } from "@/lib/auth";
+import { checkPermission } from "@/lib/permissions";
 import { eq, desc } from "drizzle-orm";
 
 // Admin GET — list all saved locations
 export async function GET() {
-  const session = await getSession();
-  if (!session.isLoggedIn || !session.isAdmin) {
+  const session = await checkPermission("locations");
+  if (!session) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -21,8 +21,8 @@ export async function GET() {
 
 // Admin POST — add a new saved location
 export async function POST(req: NextRequest) {
-  const session = await getSession();
-  if (!session.isLoggedIn || !session.isAdmin) {
+  const session = await checkPermission("locations");
+  if (!session) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -61,8 +61,8 @@ export async function POST(req: NextRequest) {
 
 // Admin PUT — update a saved location
 export async function PUT(req: NextRequest) {
-  const session = await getSession();
-  if (!session.isLoggedIn || !session.isAdmin) {
+  const session = await checkPermission("locations");
+  if (!session) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -108,8 +108,8 @@ export async function PUT(req: NextRequest) {
 
 // Admin DELETE — remove a saved location
 export async function DELETE(req: NextRequest) {
-  const session = await getSession();
-  if (!session.isLoggedIn || !session.isAdmin) {
+  const session = await checkPermission("locations");
+  if (!session) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
